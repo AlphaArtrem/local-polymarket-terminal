@@ -1,0 +1,31 @@
+# Project memory guard policy. JSON body (valid YAML); full-line # comments only.
+# mode: warn-only downgrades every block to warn; block-capable lets blocks stand.
+# record_outcomes: outcome when an accepted memory record matches the action.
+# human_only_commands / blocked_commands: command prefixes, `*` matches any text.
+# domains: named high-risk areas matched by command prefixes, path globs, or action tags.
+# auto_review: optional automatic reviewer (triggers, risk tiers, AI reviewer); never holds an API key.
+# freshness: optional evidence freshness checks (post-commit trigger, automatic recheck, re-verify age).
+# retrieval / semantic: search adapters and meaning-based judgement (embeddings provider, thresholds); never hold an API key.
+# upkeep: optional nightly upkeep (schedule time, time budget, steps, session-start catch-up).
+# doc_import: optional doc fact extraction (mode, AI extraction, heading hints, per-run caps, doc classes).
+#   Doc classes, not enforced until you add them under doc_import: archive docs (reports, history) are never reviewed;
+#   transient docs (session handoff notes) are skipped. Globs match project-relative paths.
+#   "classes": { "archive": ["reports/**", "**/*-report*.md", "**/history*.md"], "transient": ["**/handoff*.md"] }
+# reconcile: optional live-state reconciliation against the current docs (AI pass on or off, per-run call caps).
+# context: agent reads of human docs (docs_access off, warn, or block; human_docs globs); project context comes from memory.
+# Reference: .aw_registry/workspace/references/project-memory-policy.md
+{
+  "version": 1,
+  "mode": "warn-only",
+  "record_outcomes": {
+    "retired_script": "warn",
+    "trap": "warn",
+    "failure": "warn",
+    "invariant": "warn",
+    "open_question": "needs_review",
+    "operator_action": "needs_human"
+  },
+  "human_only_commands": [],
+  "blocked_commands": [],
+  "domains": []
+}

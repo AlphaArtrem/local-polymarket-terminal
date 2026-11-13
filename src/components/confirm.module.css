@@ -1,0 +1,12 @@
+.dialog { background: var(--panel); color: var(--text); border: 1px solid var(--accent); border-radius: 4px; padding: 16px; min-width: 340px; max-width: 480px; font: inherit; }
+.dialog::backdrop { background: rgba(0, 0, 0, 0.6); }
+.title { margin: 0 0 10px; font-size: 15px; }
+.rows { margin: 0 0 10px; }
+.row { display: flex; justify-content: space-between; gap: 16px; padding: 2px 0; border-bottom: 1px solid var(--border); }
+.row dt { color: var(--muted); }
+.row dd { margin: 0; text-align: right; overflow-wrap: anywhere; }
+.error { color: var(--bad); margin-bottom: 8px; }
+.actions { display: flex; justify-content: flex-end; gap: 8px; }
+.primary, .secondary { font: inherit; padding: 4px 14px; border-radius: 3px; border: 1px solid var(--border); background: var(--bg); color: var(--text); cursor: pointer; }
+.primary { border-color: var(--accent); }
+.primary:disabled, .secondary:disabled { color: var(--muted); cursor: default; }

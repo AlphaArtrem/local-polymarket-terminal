@@ -1,0 +1,177 @@
+{
+  "schema": "aw-memory.doc-coverage.v1",
+  "docs": {
+    "README.md": {
+      "sha256": "sha256:82d1122e40412fd80907ab22c81af923113ea43e050f85e8af10019e98c80ec3",
+      "lines": 39,
+      "rules": {
+        "version": 41,
+        "facts": 3
+      },
+      "ai": {
+        "state": "unavailable",
+        "sections_total": 4,
+        "sections_done": [],
+        "facts": 0,
+        "dropped": 0,
+        "malformed": 0,
+        "calls": 0
+      },
+      "fact_ids": [
+        "mem_import_doc_538c53107fda",
+        "mem_import_doc_8e5f10397ef8",
+        "mem_import_doc_e942ae31804a"
+      ],
+      "complete": false,
+      "updated_at": "2026-11-13T17:00:11Z",
+      "reconciled": {
+        "sha256": "sha256:82d1122e40412fd80907ab22c81af923113ea43e050f85e8af10019e98c80ec3",
+        "at": "2026-11-13T17:00:11Z"
+      }
+    },
+    "docs/external-facts.md": {
+      "sha256": "sha256:51094bb4985981827839196b91a26432f0dd323b9a5d92f0e80e8952c77df74c",
+      "lines": 50,
+      "rules": {
+        "version": 41,
+        "facts": 2
+      },
+      "ai": {
+        "state": "unavailable",
+        "sections_total": 5,
+        "sections_done": [],
+        "facts": 0,
+        "dropped": 0,
+        "malformed": 0,
+        "calls": 0
+      },
+      "fact_ids": [
+        "mem_import_doc_1ad91d731f44",
+        "mem_import_doc_c94e372e0a8b"
+      ],
+      "complete": false,
+      "updated_at": "2026-11-13T17:00:11Z",
+      "reconciled": {
+        "sha256": "sha256:51094bb4985981827839196b91a26432f0dd323b9a5d92f0e80e8952c77df74c",
+        "at": "2026-11-13T17:00:11Z"
+      }
+    },
+    "docs/hazards.md": {
+      "sha256": "sha256:7c4aa4f103e8a094219ec48e2278db237b6dd9551287ae786ad008c8de5c3d71",
+      "lines": 71,
+      "rules": {
+        "version": 41,
+        "facts": 3
+      },
+      "ai": {
+        "state": "unavailable",
+        "sections_total": 9,
+        "sections_done": [],
+        "facts": 0,
+        "dropped": 0,
+        "malformed": 0,
+        "calls": 0
+      },
+      "fact_ids": [
+        "mem_import_doc_55a27eed6c7a",
+        "mem_import_doc_6374afaef5ee",
+        "mem_import_doc_bf43a995e827"
+      ],
+      "complete": false,
+      "updated_at": "2026-11-13T17:00:11Z",
+      "reconciled": {
+        "sha256": "sha256:7c4aa4f103e8a094219ec48e2278db237b6dd9551287ae786ad008c8de5c3d71",
+        "at": "2026-11-13T17:00:11Z"
+      }
+    },
+    "docs/index.md": {
+      "sha256": "sha256:20e89fc55d353fe18d9737e588df3e91a55b6073dafc09920f6b4a5aa17de52e",
+      "lines": 11,
+      "rules": {
+        "version": 41,
+        "facts": 0
+      },
+      "ai": {
+        "state": "unavailable",
+        "sections_total": 1,
+        "sections_done": [],
+        "facts": 0,
+        "dropped": 0,
+        "malformed": 0,
+        "calls": 0
+      },
+      "fact_ids": [],
+      "complete": false,
+      "updated_at": "2026-11-13T17:00:11Z",
+      "reconciled": {
+        "sha256": "sha256:20e89fc55d353fe18d9737e588df3e91a55b6073dafc09920f6b4a5aa17de52e",
+        "at": "2026-11-13T17:00:11Z"
+      }
+    },
+    "docs/plan.md": {
+      "sha256": "sha256:49f0543ec67cc1a5ea08825b37957934f66497ec5f8d4428e20adbce1f77d6ce",
+      "lines": 187,
+      "rules": {
+        "version": 41,
+        "facts": 5
+      },
+      "ai": {
+        "state": "unavailable",
+        "sections_total": 11,
+        "sections_done": [],
+        "facts": 0,
+        "dropped": 0,
+        "malformed": 0,
+        "calls": 0
+      },
+      "fact_ids": [
+        "mem_import_doc_55fa2c08aab7",
+        "mem_import_doc_6002701aa109",
+        "mem_import_doc_9841a13abd2c",
+        "mem_import_doc_c4bca3a7e8c7",
+        "mem_import_doc_d7bf9bc94006"
+      ],
+      "complete": false,
+      "updated_at": "2026-11-13T17:00:11Z",
+      "reconciled": {
+        "sha256": "sha256:49f0543ec67cc1a5ea08825b37957934f66497ec5f8d4428e20adbce1f77d6ce",
+        "at": "2026-11-13T17:00:11Z"
+      }
+    },
+    "docs/state.md": {
+      "sha256": "sha256:6d402098d5b855902eeeebfa6265196e54b4c7150ce6909e1a79e90d137ad953",
+      "lines": 42,
+      "rules": {
+        "version": 41,
+        "facts": 10
+      },
+      "ai": {
+        "state": "unavailable",
+        "sections_total": 6,
+        "sections_done": [],
+        "facts": 0,
+        "dropped": 0,
+        "malformed": 0,
+        "calls": 0
+      },
+      "fact_ids": [
+        "mem_import_doc_22e3739b6789",
+        "mem_import_doc_2dcfaea46ce1",
+        "mem_import_doc_3ea730659bc9",
+        "mem_import_doc_4115c65e27a4",
+        "mem_import_doc_808b7198046b",
+        "mem_import_doc_be03e4a46b97",
+        "mem_import_doc_c43a2e281894",
+        "mem_import_doc_c5174f27743a",
+        "mem_import_doc_c54ef5922a11",
+        "mem_import_doc_fa8b23175ddd"
+      ],
+      "complete": false,
+      "updated_at": "2026-11-13T17:00:11Z",
+      "reconciled": {
+        "sha256": "sha256:6d402098d5b855902eeeebfa6265196e54b4c7150ce6909e1a79e90d137ad953",
+        "at": "2026-11-13T17:00:11Z"
+      }
+    }
+  }
+}
