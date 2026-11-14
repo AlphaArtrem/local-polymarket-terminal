@@ -28,9 +28,9 @@ describe("read routes without a key", () => {
     expect(((await res.json()) as { error: { code: string } }).error.code).toBe("NOT_CONFIGURED");
   });
 
-  it("orders exports GET and POST only (no PUT/PATCH/DELETE on the collection)", async () => {
+  it("orders exports GET, POST and DELETE (cancel-all, Phase 7) and no PUT/PATCH", async () => {
     const mod = await import("@/app/api/orders/route");
-    expect(Object.keys(mod).filter((k) => /^(GET|POST|PUT|PATCH|DELETE)$/.test(k))).toEqual(["GET", "POST"]);
+    expect(Object.keys(mod).filter((k) => /^(GET|POST|PUT|PATCH|DELETE)$/.test(k)).sort()).toEqual(["DELETE", "GET", "POST"]);
   });
 
   it("positions rejects an invalid status with 400", async () => {

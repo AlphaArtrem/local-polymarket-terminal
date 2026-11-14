@@ -2,6 +2,7 @@ import Link from "next/link";
 import { formatCents, formatPercent, formatShares, formatSignedUsd, formatTime, formatUsd, pnlTone, shortHash } from "@/lib/format";
 import type { Column } from "./DataPanel";
 import { CancelOrderButton } from "./CancelOrderButton";
+import { RedeemButton } from "./RedeemButton";
 import styles from "./dashboard.module.css";
 import type { ActivityDto, OrderDto, PositionDto, TradeDto } from "./types";
 
@@ -38,7 +39,9 @@ export const positionColumns: Column<PositionDto>[] = [
   {
     header: "",
     render: (p) =>
-      p.eventSlug ? (
+      p.redeemable ? (
+        <RedeemButton position={p} />
+      ) : p.eventSlug ? (
         <Link href={marketHref(p.eventSlug, `?asset=${encodeURIComponent(p.assetId)}&side=SELL`)}>Close</Link>
       ) : null,
   },

@@ -4,7 +4,7 @@ A local trading terminal for Polymarket. It runs on your machine at `http://127.
 uses Polymarket's public APIs through the official SDK, and signs with your own wallet key kept
 in a local env file.
 
-> **Status:** v1 live-tested with a real wallet, plus Browse (Phase 5) and charts/live data (Phase 6). See [docs/state.md](docs/state.md).
+> **Status:** v1 live-tested with a real wallet, plus Browse (Phase 5), charts/live data (Phase 6) and redeem/cancel-all/alerts (Phase 7). See [docs/state.md](docs/state.md).
 
 ## What it does
 
@@ -16,10 +16,13 @@ in a local env file.
   and a tape of recent trades; falls back to polling if the live stream drops.
 - **Trade**: limit and market orders with server-side safety checks; your open orders on an event
   appear under it with Cancel.
+- **Claim, cancel, alert**: Redeem winnings on resolved markets (needs the Relayer API key),
+  cancel all open orders (everywhere or on one event), and price alerts that notify you while the
+  app is open (`/alerts`; stored only in your browser).
 - **Portfolio** (`/portfolio`): pUSD balance, portfolio value, open and closed positions, open
   orders, trade history and activity.
 
-Redeeming winnings, cancel-all and price alerts come later ([docs/plan.md](docs/plan.md)).
+Advanced order types (expiry, take-profit/stop-loss) come later ([docs/plan.md](docs/plan.md)).
 
 ## Before you trade
 

@@ -2,7 +2,7 @@
 
 A local Polymarket trading terminal: a website-like UI on `127.0.0.1` that talks to Polymarket's
 public APIs with the user's own wallet. Phases 0–3 are built; [state.md](state.md) says what
-exists. **Phases 0–6 are done; next is Phase 7 (redeem, cancel-all, alerts).**
+exists. **Phases 0–7 are done; next is Phase 8 (advanced order types).**
 
 Each phase ends in a **demonstration**, not just green tests. Slices are sized for one
 implementer agent each, with explicit file ownership so parallel slices never touch the same file.
@@ -313,9 +313,82 @@ killing the network falls back to polling. `npm run check` green.
 
 ---
 
+## Phase 7 — Redeem, cancel-all, price alerts (slices I, J, K, parallel) — done 2026-11-14
+
+**Goal:** claim winnings on resolved markets, cancel all open orders (or all on one event) in one
+click, and get a desktop notification when a price crosses a level you set.
+
+SDK facts checked 2026-11-14 (type definitions + live call):
+
+- `redeemPositions(client, { conditionId })` (from `@polymarket/client/actions`) redeems held
+  positions in a resolved market and returns a `TransactionHandle` (`wait()` confirms). It is a
+  gasless relayer transaction: needs the Relayer API key, like Enable trading (F14f).
+- `cancelAllWalletOrders(client)` cancels every open order on a Deposit Wallet (any signer);
+  `cancelAll(client)` cancels orders placed with this client's credentials (use it for EOA/Safe);
+  `cancelMarketOrders(client, { market: conditionId })` cancels one market. All return
+  `{ canceled: OrderId[], notCanceled: Record<OrderId, reason> }`.
+- `fetchMidpoints([{ assetId }, …])` returns `{ [assetId]: "0.0945", … }` (an object argument is
+  rejected with `UserInputError`).
+- Positions already carry `redeemable` (`PositionDto.redeemable`).
+
+Contract: `src/lib/phase7-types.ts` (main session).
+
+### Slice I — redeem (implementer)
+
+Owner of: `src/server/redeem.ts`, `src/app/api/redeem/route.ts`,
+`src/components/dashboard/RedeemBanner.tsx`, `src/components/dashboard/RedeemButton.tsx`,
+`src/components/dashboard/columns.tsx` (positions columns only), `tests/redeem*.test.ts`.
+
+- Server: zod body; requires key + relayer key (reuse `RelayerKeyMissingError` /
+  `RELAYER_KEY_REQUIRED`); refuses unless the account holds a redeemable position in that market;
+  one redemption in flight per condition; waits for confirmation up to ~60 s, else `submitted`.
+- UI: Redeem button on redeemable rows (Open positions); `RedeemBanner` above the dashboard tabs
+  ("N resolved positions worth $X can be claimed" + Claim, one market at a time, with a confirm
+  dialog naming each market and amount).
+
+### Slice J — cancel-all (implementer)
+
+Owner of: `src/server/orders/cancel-all.ts`, `DELETE` in `src/app/api/orders/route.ts`,
+`src/components/CancelAllButton.tsx`, `src/components/market/YourOrders.tsx`,
+`tests/cancel-all*.test.ts`.
+
+- Server: Deposit Wallet → `cancelAllWalletOrders`, otherwise `cancelAll`; with
+  `conditionIds` → `cancelMarketOrders` per id (validated `0x` + 64 hex, ≤ 50). Logs counts only.
+- UI: `CancelAllButton` (props: optional `conditionIds`, `count`, `onDone`) with a confirm dialog
+  stating how many orders; used in the event page's "Your orders" strip (this event only) and,
+  wired by the main session, in the dashboard's Open orders tab (everything).
+
+### Slice K — price alerts (implementer)
+
+Owner of: `src/lib/alerts.ts`, `src/server/prices.ts`, `src/app/api/prices/route.ts`,
+`src/components/alerts/*`, `src/app/alerts/page.tsx`, `src/components/Header.tsx`,
+`src/app/layout.tsx`, `tests/alerts*.test.ts`, `tests/prices*.test.ts`.
+
+- Pure `alerts.ts`: zod-validated localStorage schema (versioned, corrupt data → empty list),
+  crossing detection (fires once when the midpoint moves past the threshold), add/remove/re-arm.
+- `/api/prices` (batched `fetchMidpoints`, 10 s cache).
+- `AlertsRunner` (mounted in the layout): polls `/api/prices` every 15 s while the tab is
+  visible, fires the browser Notification (asks permission on first alert creation; falls back to
+  an in-page toast) and marks the alert fired. `AlertButton` (props `assetId`, `label`,
+  `eventSlug`, `currentPrice`) opens a small form (above/below, price in ¢). `/alerts` page lists,
+  deletes and re-arms alerts. Header gets an "Alerts" link with a count of armed alerts.
+
+### Main session
+
+Wire `RedeemBanner` and `CancelAllButton` into the dashboard and `AlertButton` into the event page;
+full check; browser acceptance; docs.
+
+**Accept:** the dashboard shows Redeem only for redeemable rows (none today: the account has no
+positions, so the flow is verified with mocked tests and the disabled state); "Cancel all" on the
+dashboard and on an event shows a confirm with the right count and, with no orders, is disabled;
+creating an alert on the NVIDIA page at a level just past the current price produces a
+notification within ~15 s; `/alerts` lists, re-arms and deletes it. No order is placed or
+cancelled by agents or by the main session — the user runs any live cancel/redeem.
+
+---
+
 ## Later phases (not v1)
 
 | Phase | Scope |
 | - | - |
-| 7 | Redeem resolved positions (relayer key now in place), cancel-all, price alerts. |
 | 8 | Order types beyond v1: GTD expiry, TWAP, take-profit/stop-loss (`placePositionTpSl`). |

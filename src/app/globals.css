@@ -49,3 +49,12 @@ a:hover { text-decoration: underline; }
 .badge[data-state="close-only"] { color: var(--warn); border-color: var(--warn); }
 .badge[data-state="blocked"] { color: var(--bad); border-color: var(--bad); }
 .badge[data-state="not-configured"] { color: var(--muted); }
+
+.nav-badge {
+  margin-left: 4px;
+  padding: 0 5px;
+  border-radius: 8px;
+  background: var(--accent);
+  color: var(--bg);
+  font-size: 11px;
+}

@@ -1,0 +1,14 @@
+.wrap { position: relative; display: inline-block; }
+.trigger, .popover button, .actions button { font: inherit; color: var(--text); background: var(--panel); border: 1px solid var(--border); border-radius: 3px; padding: 2px 8px; cursor: pointer; }
+.trigger:focus-visible, .popover :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.popover { position: absolute; z-index: 20; top: 100%; left: 0; margin-top: 4px; display: grid; gap: 6px; padding: 8px; background: var(--panel); border: 1px solid var(--border); border-radius: 3px; white-space: nowrap; max-width: calc(100vw - 24px); }
+.popover select, .popover input { font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--border); padding: 2px 4px; }
+.row { display: flex; gap: 6px; align-items: center; }
+.error { color: var(--bad); }
+.scroll { overflow-x: auto; }
+.table { border-collapse: collapse; width: 100%; }
+.table th, .table td { text-align: left; padding: 4px 10px 4px 0; border-bottom: 1px solid var(--border); }
+.actions { display: flex; gap: 6px; }
+.toasts { position: fixed; z-index: 50; right: 12px; bottom: 12px; display: grid; gap: 6px; max-width: calc(100vw - 24px); }
+.toast { display: flex; gap: 10px; align-items: center; justify-content: space-between; padding: 8px 10px; background: var(--panel); border: 1px solid var(--warn); border-radius: 3px; }
+.toast button { font: inherit; color: var(--muted); background: none; border: 0; cursor: pointer; }

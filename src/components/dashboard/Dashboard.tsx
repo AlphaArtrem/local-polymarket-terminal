@@ -3,11 +3,14 @@
 import { useCallback, useEffect, useState } from "react";
 import { activityColumns, closedPositionColumns, orderColumns, positionColumns, tradeColumns } from "./columns";
 import styles from "./dashboard.module.css";
+import { CancelAllButton } from "../CancelAllButton";
 import { DataPanel } from "./DataPanel";
 import { EnableTrading } from "./EnableTrading";
 import { NotConfiguredHint } from "./NotConfiguredHint";
+import { RedeemBanner } from "./RedeemBanner";
 import { Summary } from "./Summary";
-import type { ActivityDto, OrderDto, PositionDto, TradeDto } from "./types";
+import type { ActivityDto, OrderDto, Page, PositionDto, TradeDto } from "./types";
+import { useApi } from "./useApi";
 
 const POLL_MS = 30_000;
 
@@ -40,6 +43,7 @@ export function Dashboard({ configured }: { configured: boolean }) {
   return (
     <div>
       <EnableTrading refreshToken={refreshToken} />
+      <RedeemBanner refreshToken={refreshToken} onRedeemed={refresh} />
       <Summary refreshToken={refreshToken} />
       <div className={styles.toolbar}>
         <div className={styles.tabs} role="tablist">
@@ -78,6 +82,7 @@ export function Dashboard({ configured }: { configured: boolean }) {
           refreshToken={refreshToken}
         />
       )}
+      {tab === "Open orders" && <CancelAllOrders refreshToken={refreshToken} onDone={refresh} />}
       {tab === "Open orders" && (
         <DataPanel<OrderDto>
           endpoint="/api/orders"
@@ -108,3 +113,15 @@ export function Dashboard({ configured }: { configured: boolean }) {
     </div>
   );
 }
+
+/** "Cancel all" for every open order on the account; the count comes from the first orders page. */
+function CancelAllOrders({ refreshToken, onDone }: { refreshToken: number; onDone: () => void }) {
+  const { data } = useApi<Page<OrderDto>>("/api/orders", refreshToken);
+  if (!data) return null;
+  return (
+    <div className={styles.more}>
+      <CancelAllButton count={data.items.length} label="Cancel all open orders" onDone={onDone} />
+    </div>
+  );
+}
+

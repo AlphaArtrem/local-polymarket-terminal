@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import type { EventDTO, MarketDTO, SelectedOutcome } from "@/lib/market";
 import { cents, shortDate, usd } from "./fmt";
+import { AlertButton } from "../alerts/AlertButton";
 import { OrderBook } from "./OrderBook";
 import { PriceChart } from "./PriceChart";
 import { TradeTape } from "./TradeTape";
@@ -120,6 +121,13 @@ export function MarketView({ event, markets, initialAssetId, initialSide, config
             <>
               <div className={styles.bookHeader}>
                 <strong>{market.title}</strong>
+                <AlertButton
+                  key={`alert-${outcome.assetId}`}
+                  assetId={outcome.assetId}
+                  label={`${market.title} · ${outcome.label}`}
+                  eventSlug={event.slug}
+                  currentPrice={outcome.price}
+                />
                 <div className={styles.toggle} role="group" aria-label="Outcome">
                   {market.outcomes.map((o, i) => (
                     <button

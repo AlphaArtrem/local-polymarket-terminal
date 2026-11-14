@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { orderColumns } from "../dashboard/columns";
+import { CancelAllButton } from "../CancelAllButton";
 import styles from "../dashboard/dashboard.module.css";
 import type { OrderDto, Page } from "../dashboard/types";
 import { useApi } from "../dashboard/useApi";
@@ -31,6 +32,7 @@ export function YourOrders({ conditionIds }: { conditionIds: string[] }) {
   return (
     <section aria-label="Your orders" data-slot="your-orders">
       <h2 className={styles.cardLabel}>Your orders</h2>
+      <CancelAllButton count={orders.length} conditionIds={[...new Set(orders.map((o) => o.conditionId))]} onDone={() => setToken((n) => n + 1)} />
       {error ? <div className={styles.error}>Could not load orders: {error.message}</div> : null}
       {!data && !error ? <div className={styles.state}>Loading…</div> : null}
       {data && orders.length === 0 ? <div className={styles.state}>No open orders on this event.</div> : null}

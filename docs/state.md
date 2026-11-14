@@ -42,6 +42,16 @@ v1 is live-tested with a real wallet (order placed and cancelled, 2026-11-14). `
   EventSource per asset and falls back to polling `/api/book`; `TradeTape`; contract
   `src/lib/live-types.ts`.
 
+- **Phase 7 — redeem, cancel-all, alerts.** `POST /api/redeem` (`src/server/redeem.ts`: relayer
+  key required, only when a redeemable position exists → else 409 `NOTHING_TO_REDEEM`, one in flight
+  per market, 60 s confirmation wait); `RedeemButton` on redeemable rows + `RedeemBanner`.
+  `DELETE /api/orders[?conditionIds=]` (`src/server/orders/cancel-all.ts`: Deposit Wallet →
+  `cancelAllWalletOrders`, else `cancelAll`; per market `cancelMarketOrders`); `CancelAllButton` on
+  the dashboard and the event's "Your orders". Price alerts in `localStorage`
+  (`pmterm.alerts.v1`, `src/lib/alerts.ts`), `AlertsRunner` in the layout polls `/api/prices`
+  every 15 s, Notification or in-page toast, `/alerts` page, header count. Contract
+  `src/lib/phase7-types.ts`.
+
 Verified live without a key (2026-11-13): NVIDIA lookup by URL, market URL, condition id and id;
 24 listed candidates; live order books; search routing; not-configured states; Host and Origin
 rejections (403); order POST without key → 503.
@@ -83,6 +93,9 @@ Each names what breaks silently if violated.
 
 ## Next action
 
-Phase 6 accepted in the browser on 2026-11-14 (chart ranges + hover, live book "● live", trade
-tape on a 5-minute BTC market, polling fallback with EventSource forced to fail, 375 px). Next:
-Phase 7 (redeem resolved positions, cancel-all, price alerts) when the user asks.
+Phase 7 accepted in the browser on 2026-11-14: redeem/cancel-all guards (403 without Origin,
+400 bad input, 409 nothing to redeem — nothing submitted), Cancel all disabled with 0 orders,
+positions row shows Close (not Redeem) for the user's open NVIDIA position, an alert fired with
+an in-page toast (Notifications are blocked in the in-app browser), `/alerts` lists, re-arms and
+deletes. Live redeem and live cancel-all are untested until the user has a resolved position /
+open orders. Next: Phase 8 (advanced order types) when the user asks.
