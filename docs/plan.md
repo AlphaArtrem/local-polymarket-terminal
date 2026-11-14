@@ -1,8 +1,8 @@
 # Plan
 
 A local Polymarket trading terminal: a website-like UI on `127.0.0.1` that talks to Polymarket's
-public APIs with the user's own wallet. Nothing here is built yet; [state.md](state.md) says what
-exists.
+public APIs with the user's own wallet. Phases 0–3 are built; [state.md](state.md) says what
+exists. **Current phase: 5 (Browse)**, after closing the Phase 4 items below.
 
 Each phase ends in a **demonstration**, not just green tests. Slices are sized for one
 implementer agent each, with explicit file ownership so parallel slices never touch the same file.
@@ -46,6 +46,8 @@ tests/                      vitest; tests/fixtures/nvidia-event.json from live G
 | - | - | - |
 | `POLYMARKET_PRIVATE_KEY` | wallet features | Signer key, `0x` + 64 hex. |
 | `POLYMARKET_WALLET_ADDRESS` | wallet features | Account wallet from polymarket.com profile menu. May differ from the signer address. |
+| `POLYMARKET_RELAYER_API_KEY` + `_ADDRESS` | Enable trading | Relayer API key and its Signer Address (external-facts F14f). Set both or neither. |
+| `POLYGON_RPC_URL` | wallet operations | Default publicnode; must accept JSON-RPC batches over 10 (F14g). |
 | `MAX_ORDER_USDC` | trading | Server-side cap per order, default `25`. |
 | `PORT` | — | Default `3737`. |
 
@@ -169,12 +171,91 @@ mode the ticket disables BUY and explains why.
 
 ## Phase 4 — v1 hardening (main session)
 
-- Error and loading states on every panel; empty states.
-- `README.md` setup guide verified from a clean clone.
-- Review pass (security: key handling, middleware, order validation).
+Done: approvals flow, relayer key, RPC override, README setup guide for new users, MIT license,
+public repo. Remaining, all small:
 
-**Accept:** v1 is ready for the user's manual test: fresh clone → `nvm use` → `npm i` →
-`.env.local` → `npm run dev` → dashboard, lookup and ticket work.
+- ~~User live test~~ passed 2026-11-14 (order placed and cancelled).
+- Enable trading dialog: after a successful submit, re-read the approval state a few times
+  (about 3 s apart, up to ~15 s) before showing "still missing" (state lags; F14f). Test with
+  fake timers.
+- README verified from a clean clone (`git clone` → `npm ci` → `npm run check`).
+
+**Accept:** the two remaining items are done; the live test is already recorded in `state.md`.
+
+---
+
+## Phase 5 — Browse (slices E and F, parallel)
+
+**Goal:** open the terminal and find markets the way the website's home page allows: trending,
+new, ending soon, by category, and by keyword, then click through to the existing event page
+and trade. No key is needed for anything in this phase.
+
+Probed live on 2026-11-14 with `createPublicClient()` (record as external facts in slice E):
+
+- `listEvents({ order, ascending: false, closed: false, pageSize }).firstPage()` works with
+  `order: "volume24hr"` and `"createdAt"`. Events carry `metrics`, `state`, `schedule`,
+  `display`, `tags` and `markets`; volume lives under `metrics`, not top-level.
+- `createdAt` order is dominated by auto-generated 5-minute crypto "up/down" events
+  (`xrp-updown-5m-…`); **New** must exclude recurring series (`recurrence`, `series`) or it is
+  useless (new hazard H10).
+- `listTags({ isCarousel: true })` returns one tag (`ai`), so it cannot drive the category bar.
+  Use a curated list of tag slugs, each verified with `fetchTag({ slug })` in a test fixture.
+- `search({ q })` is paginated (`firstPage()`), returning events, profiles and tags.
+- negRisk events still contain inactive placeholder markets (F14d); reuse the `listed` rule.
+
+### Shared contract (written first by the main session, owned by neither slice)
+
+`src/lib/browse-types.ts`:
+
+```ts
+export type BrowseSort = "trending" | "new" | "ending";
+export type EventCard = {
+  id: string; slug: string; title: string; image: string | null;
+  volume24h: string | null; liquidity: string | null; endDate: string | null;
+  marketCount: number;               // listed markets only
+  top: { label: string; price: string | null }[]; // up to 2 best listed outcomes, or Yes/No for binary
+};
+export type Category = { slug: string; label: string };
+export type BrowsePage = { items: EventCard[]; nextCursor: string | null };
+```
+
+Routes: `GET /api/events?sort=&tag=&cursor=` → `BrowsePage`; `GET /api/categories` →
+`Category[]`; `GET /api/search?q=&cursor=` → `BrowsePage`. All zod-validated (`sort` enum, `tag`
+from the curated list only, `q` 1–100 chars), errors in the standard envelope.
+
+### Slice E — server (implementer)
+
+Owner of: `src/server/browse.ts`, `src/lib/categories.ts`, `src/lib/event-card.ts`,
+`src/app/api/{events,categories,search}/route.ts`, `tests/browse*.test.ts`,
+`tests/fixtures/browse-*.json`, `docs/external-facts.md` (new F21+ rows).
+
+- `toEventCard(event)` (pure): picks volume and liquidity from `metrics`, applies the `listed`
+  rule, chooses top outcomes by price, formats prices as decimal strings. Fixture-tested with a
+  binary event, a negRisk event with placeholders, and an event with no image.
+- Sorts: trending = `volume24hr` desc, active, not closed; new = `createdAt` desc minus recurring
+  series; ending = `endDate` ascending with `endDateMin` = now, not closed.
+- Curated categories (Politics, Sports, Crypto, Tech, AI, Economy, World, Culture or as verified),
+  fetched slugs checked in a test against a recorded `fetchTag` fixture.
+- Short in-memory cache (30–60 s) per `(sort, tag, cursor)` to stay well under rate limits; map
+  `RateLimitError` to 429.
+
+### Slice F — UI (implementer)
+
+Owner of: `src/app/page.tsx`, `src/app/portfolio/page.tsx` (new), `src/components/browse/*`,
+`src/components/Header.tsx`, `src/components/SearchBar.tsx`, their tests.
+
+- Home `/` becomes Browse; the wallet dashboard moves to `/portfolio`, linked from the header
+  next to the access badge.
+- Category chips + sort tabs (Trending / New / Ending soon), a dense list of event rows (image,
+  title, top outcomes with prices, 24h volume, end date, market count), **Load more** paging.
+- Search bar: inputs that `parseQuery` recognises still jump straight to the event page; free text
+  shows search results in the Browse list (`?q=`), debounced, with an empty state.
+- Images: plain `<img>` with `referrerPolicy="no-referrer"`, lazy loading, fixed size.
+- State in the URL (`?sort=&tag=&q=`) so views are shareable and survive refresh.
+
+**Accept:** with no key set, open `/` → trending events appear; click **Crypto** → only crypto
+events; switch to **New** → no 5-minute up/down spam; type "nvidia" → "Next CEO of NVIDIA?" is
+listed; click it → the existing event page with a live order book. `npm run check` green.
 
 ---
 
@@ -182,7 +263,6 @@ mode the ticket disables BUY and explains why.
 
 | Phase | Scope |
 | - | - |
-| 5 | Browse: categories via tags (`listTags`), trending and new events (`listEvents` sorted by volume), keyword search. |
-| 6 | Price charts (`listPriceHistory`), live books and fills over WebSocket. |
-| 7 | Redeem resolved positions and approvals via Relayer key (Q3). |
+| 6 | Price charts (`listPriceHistory`), live books and fills over WebSocket (humanplane/terminal does this well; see state.md). |
+| 7 | Redeem resolved positions (relayer key now in place), cancel-all, price alerts. |
 | 8 | Order types beyond v1: GTD expiry, TWAP, take-profit/stop-loss (`placePositionTpSl`). |

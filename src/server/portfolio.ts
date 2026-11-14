@@ -35,6 +35,16 @@ const asCursor = (cursor: string | undefined): Cursor | undefined => cursor as C
 
 type SdkPage<T> = { items: T[]; nextCursor?: string; hasMore: boolean };
 
+type Paginator<T> = { firstPage(): Promise<SdkPage<T>>; from(cursor?: Cursor): { firstPage(): Promise<SdkPage<T>> } };
+
+/**
+ * First page, or the page at `cursor`. Never call `.from(undefined)`: in SDK 0.18.0 it returns an
+ * empty page without making a request (hazard H11), which silently emptied every list.
+ */
+function pageAt<T>(paginator: Paginator<T>, cursor: string | undefined): Promise<SdkPage<T>> {
+  return cursor ? paginator.from(asCursor(cursor)).firstPage() : paginator.firstPage();
+}
+
 function toPage<S, D>(page: SdkPage<S>, map: (row: S, index: number) => D): Page<D> {
   return {
     items: page.items.map((row, i) => map(row, i)),
@@ -170,13 +180,14 @@ export async function getPositions(
   cursor?: string,
 ): Promise<Page<PositionDto>> {
   const client = await getSecureClient();
-  const page = await listPositions(client, {
-    user: client.account.wallet,
-    status: status === "OPEN" ? PositionStatus.Open : PositionStatus.Closed,
-    pageSize: PAGE_SIZE,
-  })
-    .from(asCursor(cursor))
-    .firstPage();
+  const page = await pageAt(
+    listPositions(client, {
+      user: client.account.wallet,
+      status: status === "OPEN" ? PositionStatus.Open : PositionStatus.Closed,
+      pageSize: PAGE_SIZE,
+    }),
+    cursor,
+  );
   return toPage(page, mapPosition);
 }
 
@@ -211,21 +222,19 @@ export async function withMarketNames<T extends { conditionId: string } & Market
 
 export async function getTrades(cursor?: string): Promise<Page<TradeDto>> {
   const client = await getSecureClient();
-  const page = toPage(await listAccountTrades(client).from(asCursor(cursor)).firstPage(), mapTrade);
+  const page = toPage(await pageAt(listAccountTrades(client), cursor), mapTrade);
   return { ...page, items: await withMarketNames(page.items) };
 }
 
 export async function getActivity(cursor?: string): Promise<Page<ActivityDto>> {
   const client = await getSecureClient();
-  const page = await listActivity(client, { user: client.account.wallet, pageSize: PAGE_SIZE })
-    .from(asCursor(cursor))
-    .firstPage();
+  const page = await pageAt(listActivity(client, { user: client.account.wallet, pageSize: PAGE_SIZE }), cursor);
   return toPage(page, mapActivity);
 }
 
 export async function getOpenOrders(cursor?: string): Promise<Page<OrderDto>> {
   const client = await getSecureClient();
-  const page = toPage(await listOpenOrders(client).from(asCursor(cursor)).firstPage(), mapOrder);
+  const page = toPage(await pageAt(listOpenOrders(client), cursor), mapOrder);
   return { ...page, items: await withMarketNames(page.items) };
 }
 

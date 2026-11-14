@@ -5,8 +5,8 @@ const firstPage = vi.fn();
 const from = vi.fn(() => ({ firstPage }));
 
 vi.mock("@polymarket/client/actions", () => ({
-  listAccountTrades: () => ({ from }),
-  listOpenOrders: () => ({ from }),
+  listAccountTrades: () => ({ from, firstPage }),
+  listOpenOrders: () => ({ from, firstPage }),
 }));
 vi.mock("@/lib/polymarket-core", () => ({ fetchPusdBalance: vi.fn() }));
 vi.mock("@/server/market-lookup", () => ({ listMarketsByCondition }));

@@ -4,7 +4,7 @@ Edit in place. This file says what exists today, not what is planned (that is [p
 
 ## What exists
 
-v1 is code-complete and waiting for the user's live test. `npm run check` passes (18 test files,
+v1 is live-tested with a real wallet (order placed and cancelled, 2026-11-14). `npm run check` passes (18 test files,
 171 tests, build, client-bundle secret scan) on Node 24, 2026-11-14.
 
 - **Phase 0 — foundation.** Next.js 16 on Node 24; env parsing (`src/lib/parse-env.ts`,
@@ -71,6 +71,6 @@ Each names what breaks silently if violated.
 
 ## Next action
 
-User acceptance test (README "First live test"): add `.env.local`, VPN off, `npm run doctor`,
-check the dashboard against polymarket.com, then on one NVIDIA candidate place a 5-share limit
-BUY far below the market, see it in Open orders, cancel it. Then Phase 4 hardening.
+First live test **passed** on 2026-11-14: 5-share limit BUY at 5¢ on an NVIDIA market placed
+(`live`), shown in Open orders, cancelled; balance unchanged at 5 pUSD. It exposed H11 (empty
+dashboard lists), now fixed. Next: Phase 4 leftovers, then Phase 5 Browse ([plan.md](plan.md)).

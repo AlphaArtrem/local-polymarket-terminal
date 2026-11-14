@@ -1,11 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const firstPage = vi.fn();
-const from = vi.fn(() => ({ firstPage }));
-const listPositions = vi.fn(() => ({ from }));
-const listAccountTrades = vi.fn(() => ({ from }));
-const listActivity = vi.fn(() => ({ from }));
-const listOpenOrders = vi.fn(() => ({ from }));
+// Mirrors SDK 0.18.0: `.from(undefined)` yields an empty page without a request (hazard H11).
+const from = vi.fn((cursor?: string) =>
+  cursor === undefined ? { firstPage: async () => ({ items: [], hasMore: false }) } : { firstPage },
+);
+const paginator = () => ({ firstPage, from });
+const listPositions = vi.fn(paginator);
+const listAccountTrades = vi.fn(paginator);
+const listActivity = vi.fn(paginator);
+const listOpenOrders = vi.fn(paginator);
 const fetchPortfolioValue = vi.fn();
 const fetchUserPnl = vi.fn();
 const fetchPusdBalance = vi.fn();
@@ -54,6 +58,23 @@ describe("getPositions", () => {
 
     firstPage.mockResolvedValueOnce({ hasMore: false, items: [] });
     expect((await portfolio.getPositions("CLOSED")).nextCursor).toBeNull();
+  });
+});
+
+describe("first page without a cursor (H11 regression)", () => {
+  it("asks the SDK for the first page instead of .from(undefined)", async () => {
+    firstPage.mockResolvedValueOnce({
+      hasMore: false,
+      items: [
+        {
+          assetId: "a1", conditionId: "0xc", currentSize: "5", avgPrice: "0.05", currentPrice: "0.05",
+          currentValue: "0.25", totalPnl: "0", percentPnl: "0", redeemable: false,
+        },
+      ],
+    });
+    const page = await portfolio.getPositions("OPEN");
+    expect(page.items).toHaveLength(1);
+    expect(from).not.toHaveBeenCalled();
   });
 });
 

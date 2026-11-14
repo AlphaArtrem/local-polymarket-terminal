@@ -88,3 +88,22 @@ Fix: `POLYGON_RPC_URL` (default publicnode) is passed to the SDK; `POLYMARKET_RE
 and `_ADDRESS` are wired in; `/api/approvals` returns `RELAYER_KEY_REQUIRED` with setup steps when
 the key is absent; trading-route logs now include Polymarket's status, code and message.
 
+## H10 — "New" list flooded by auto-generated events (Prediction)
+
+Sorting events by `createdAt` returns a wall of 5-minute crypto up/down markets created every few
+minutes (seen live 2026-11-14). A naive New tab hides every real new market.
+
+Guard: the New sort excludes recurring series; a fixture test asserts no `*-updown-5m-*` slug
+survives the filter.
+
+## H11 — Dashboard lists silently empty (Lesson, 2026-11-14)
+
+What happened: after the first live order (status `live`), **Open orders** showed nothing. The
+route answered in ~2 ms without calling Polymarket. Cause: every list called
+`paginator.from(cursor).firstPage()`, and in `@polymarket/client@0.18.0` `.from(undefined)`
+returns an empty page with no request. Open orders, trades, activity and positions were all
+affected since v1; mocked tests passed because the mock returned data from any cursor.
+
+Fix: `pageAt()` in `src/server/portfolio.ts` calls `.firstPage()` when there is no cursor; the
+test mock now mirrors the SDK's empty `.from(undefined)`, with a regression test.
+
