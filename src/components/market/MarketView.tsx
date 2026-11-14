@@ -5,6 +5,7 @@ import type { EventDTO, MarketDTO, SelectedOutcome } from "@/lib/market";
 import { cents, shortDate, usd } from "./fmt";
 import { OrderBook } from "./OrderBook";
 import { TradeTicket } from "./TradeTicket";
+import { YourOrders } from "./YourOrders";
 import styles from "./market.module.css";
 
 type Props = {
@@ -144,6 +145,9 @@ export function MarketView({ event, markets, initialAssetId, initialSide, config
           />
         </aside>
       </div>
+      {configured ? (
+        <YourOrders conditionIds={markets.map((m) => m.conditionId).filter((c): c is string => Boolean(c))} />
+      ) : null}
     </div>
   );
 }

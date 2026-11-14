@@ -1,0 +1,42 @@
+{
+ "politics": {
+  "id": "2",
+  "label": "Politics",
+  "slug": "politics"
+ },
+ "crypto": {
+  "id": "21",
+  "label": "Crypto",
+  "slug": "crypto"
+ },
+ "tech": {
+  "id": "1401",
+  "label": "Tech",
+  "slug": "tech"
+ },
+ "ai": {
+  "id": "439",
+  "label": "AI",
+  "slug": "ai"
+ },
+ "economy": {
+  "id": "100328",
+  "label": "Economy",
+  "slug": "economy"
+ },
+ "world": {
+  "id": "101970",
+  "label": "World",
+  "slug": "world"
+ },
+ "pop-culture": {
+  "id": "596",
+  "label": "Culture",
+  "slug": "pop-culture"
+ },
+ "sports": {
+  "id": "1",
+  "label": "Sports",
+  "slug": "sports"
+ }
+}

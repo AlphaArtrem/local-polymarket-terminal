@@ -2,7 +2,7 @@
 
 A local Polymarket trading terminal: a website-like UI on `127.0.0.1` that talks to Polymarket's
 public APIs with the user's own wallet. Phases 0–3 are built; [state.md](state.md) says what
-exists. **Current phase: 5 (Browse)**, after closing the Phase 4 items below.
+exists. **Phases 0–5 are done; next is Phase 6 (charts and live data).**
 
 Each phase ends in a **demonstration**, not just green tests. Slices are sized for one
 implementer agent each, with explicit file ownership so parallel slices never touch the same file.
@@ -169,22 +169,18 @@ the dashboard open-orders table, their tests.
 market on one NVIDIA candidate, see it in Open orders, cancel it, see it gone. In close-only
 mode the ticket disables BUY and explains why.
 
-## Phase 4 — v1 hardening (main session)
+## Phase 4 — v1 hardening (main session) — done 2026-11-14
 
-Done: approvals flow, relayer key, RPC override, README setup guide for new users, MIT license,
-public repo. Remaining, all small:
-
-- ~~User live test~~ passed 2026-11-14 (order placed and cancelled).
-- Enable trading dialog: after a successful submit, re-read the approval state a few times
-  (about 3 s apart, up to ~15 s) before showing "still missing" (state lags; F14f). Test with
-  fake timers.
-- README verified from a clean clone (`git clone` → `npm ci` → `npm run check`).
-
-**Accept:** the two remaining items are done; the live test is already recorded in `state.md`.
+Approvals flow, relayer key, RPC override, README setup guide, MIT license, public repo; live test
+passed (order placed and cancelled, which exposed and fixed H11); "Your orders" strip on the event
+page (the missing Phase 3 item); Enable trading re-checks the lagging approval state; clean clone
+from GitHub → `npm ci` → `npm run check` green (172 tests); security pass (env read only in
+`env.ts`, no `NEXT_PUBLIC_`, `server-only` on every SDK/env module, 127.0.0.1 bind, Host +
+same-Origin guard on all three mutating routes, no secret logging).
 
 ---
 
-## Phase 5 — Browse (slices E and F, parallel)
+## Phase 5 — Browse (slices E and F, parallel) — done 2026-11-14
 
 **Goal:** open the terminal and find markets the way the website's home page allows: trending,
 new, ending soon, by category, and by keyword, then click through to the existing event page

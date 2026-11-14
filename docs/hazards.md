@@ -88,13 +88,16 @@ Fix: `POLYGON_RPC_URL` (default publicnode) is passed to the SDK; `POLYMARKET_RE
 and `_ADDRESS` are wired in; `/api/approvals` returns `RELAYER_KEY_REQUIRED` with setup steps when
 the key is absent; trading-route logs now include Polymarket's status, code and message.
 
-## H10 — "New" list flooded by auto-generated events (Prediction)
+## H10 — "New" and "Ending soon" flooded by auto-generated events (Lesson, 2026-11-14)
 
-Sorting events by `createdAt` returns a wall of 5-minute crypto up/down markets created every few
-minutes (seen live 2026-11-14). A naive New tab hides every real new market.
+What happened: `createdAt` order returned a wall of 5- and 15-minute crypto up/down events; the
+first slice-side filter (slug patterns, 4 pages) still produced **0** events for New + Crypto, and
+Ending soon showed `doge-updown-15m-*`. Settled sub-markets (price 1, not yet closed) also
+headlined some rows at 100¢.
 
-Guard: the New sort excludes recurring series; a fixture test asserts no `*-updown-5m-*` slug
-survives the filter.
+Fix: New and Ending exclude Polymarket's `hide-from-new` and `recurring` tags upstream
+(external-facts F25), with the slug/series filter kept as a safety net; top outcomes skip closed
+sub-markets and ones priced exactly 0 or 1. Regression tests cover all three.
 
 ## H11 — Dashboard lists silently empty (Lesson, 2026-11-14)
 

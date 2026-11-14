@@ -1,10 +1,11 @@
-import { Dashboard } from "@/components/dashboard/Dashboard";
-import { NotConfigured } from "@/components/dashboard/NotConfigured";
-import { isConfigured } from "@/server/polymarket";
+import { Suspense } from "react";
+import { BrowseView } from "@/components/browse/BrowseView";
 
-// Env is read at request time, so the not-configured state reflects the current .env.local.
-export const dynamic = "force-dynamic";
-
+// useSearchParams in BrowseView needs a Suspense boundary.
 export default function Home() {
-  return isConfigured() ? <Dashboard configured /> : <NotConfigured />;
+  return (
+    <Suspense fallback={<div className="muted">Loading…</div>}>
+      <BrowseView />
+    </Suspense>
+  );
 }

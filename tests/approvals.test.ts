@@ -15,6 +15,9 @@ vi.mock("@/server/polymarket", () => {
 });
 
 const { GET, POST } = await import("@/app/api/approvals/route");
+const approvals = await import("@/server/approvals");
+const sleep = vi.fn(async () => undefined);
+approvals.setSleepForTests(sleep);
 const { NotConfiguredError } = await import("@/server/polymarket");
 
 const missingState = {
@@ -55,6 +58,26 @@ describe("POST /api/approvals", () => {
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ approved: true, missing: 0 });
     expect(setupTradingApprovals).toHaveBeenCalledTimes(1);
+  });
+
+  it("re-reads the lagging state after submit until approved", async () => {
+    fetchTradingApprovalsState
+      .mockResolvedValueOnce(missingState) // before submit
+      .mockResolvedValueOnce(missingState) // right after: still lagging
+      .mockResolvedValueOnce(missingState)
+      .mockResolvedValueOnce(approvedState);
+    setupTradingApprovals.mockResolvedValue(undefined);
+    const res = await POST();
+    expect(await res.json()).toEqual({ approved: true, missing: 0 });
+    expect(sleep).toHaveBeenCalledTimes(2);
+  });
+
+  it("gives up after the last re-read and reports what is still missing", async () => {
+    fetchTradingApprovalsState.mockResolvedValue(missingState);
+    setupTradingApprovals.mockResolvedValue(undefined);
+    const res = await POST();
+    expect(await res.json()).toEqual({ approved: false, missing: 3 });
+    expect(sleep).toHaveBeenCalledTimes(approvals.RECHECK_ATTEMPTS - 1);
   });
 
   it("returns 400 RELAYER_KEY_REQUIRED without a relayer key, submitting nothing", async () => {

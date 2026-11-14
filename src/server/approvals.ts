@@ -44,6 +44,25 @@ export async function getApprovalStatus(): Promise<ApprovalStatus> {
   };
 }
 
+/** Re-read attempts after a submit; the approval state lags the transaction by a few seconds (F14f). */
+export const RECHECK_ATTEMPTS = 5;
+export const RECHECK_DELAY_MS = 3000;
+
+let sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+/** Test hook: replace the delay so tests do not wait in real time. */
+export function setSleepForTests(fn: (ms: number) => Promise<void>): void {
+  sleep = fn;
+}
+
+async function settledStatus(): Promise<ApprovalStatus> {
+  let status = await getApprovalStatus();
+  for (let i = 1; i < RECHECK_ATTEMPTS && !status.approved; i++) {
+    await sleep(RECHECK_DELAY_MS);
+    status = await getApprovalStatus();
+  }
+  return status;
+}
+
 // One setup at a time: a double click must not submit the approval transactions twice.
 let inFlight: Promise<ApprovalStatus> | undefined;
 
@@ -56,7 +75,7 @@ export function enableTrading(): Promise<ApprovalStatus> {
     if (before.approved) return before;
     await c.setupTradingApprovals();
     console.info("[approvals] trading approvals submitted");
-    return getApprovalStatus();
+    return settledStatus();
   })().finally(() => {
     inFlight = undefined;
   });

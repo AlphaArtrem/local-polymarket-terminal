@@ -28,7 +28,12 @@ v1 is live-tested with a real wallet (order placed and cancelled, 2026-11-14). `
   `POST /api/orders`, `DELETE /api/orders/[id]`; server re-fetches market, book, access and held
   size, then `src/server/orders/validate.ts`; market orders carry `maxSpend` and a ±5¢ price
   bound (`src/server/orders/bounds.ts`); exact decimal math (`src/lib/decimal.ts`); cancel from
-  the dashboard; market names on orders and trades.
+  the dashboard and from the event page's "Your orders" strip; market names on orders and trades.
+
+- **Phase 5 — browse** (`/`): trending / new / ending-soon, curated categories (tag slugs → ids,
+  `src/lib/categories.ts`), keyword search; `src/server/browse.ts` (45 s cache, `excludeTagIds`
+  for recurring events), pure `toEventCard` (`src/lib/event-card.ts`), routes
+  `/api/{events,categories,search}`, UI in `src/components/browse/`; dashboard at `/portfolio`.
 
 Verified live without a key (2026-11-13): NVIDIA lookup by URL, market URL, condition id and id;
 24 listed candidates; live order books; search routing; not-configured states; Host and Origin
@@ -71,6 +76,6 @@ Each names what breaks silently if violated.
 
 ## Next action
 
-First live test **passed** on 2026-11-14: 5-share limit BUY at 5¢ on an NVIDIA market placed
-(`live`), shown in Open orders, cancelled; balance unchanged at 5 pUSD. It exposed H11 (empty
-dashboard lists), now fixed. Next: Phase 4 leftovers, then Phase 5 Browse ([plan.md](plan.md)).
+Phase 5 accepted in the browser on 2026-11-14 (trending, Crypto chip, New without up/down spam,
+search "nvidia" → event page, Load more, `/portfolio`, 375 px). Next: Phase 6 (price charts, live
+books over WebSocket) when the user asks.

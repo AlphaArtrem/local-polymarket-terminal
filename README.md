@@ -4,15 +4,20 @@ A local trading terminal for Polymarket. It runs on your machine at `http://127.
 uses Polymarket's public APIs through the official SDK, and signs with your own wallet key kept
 in a local env file.
 
-> **Status:** v1. Wallet, lookup and trading work against a live account; the first-trade test is next. See [docs/state.md](docs/state.md).
+> **Status:** v1 live-tested with a real wallet, plus Browse (Phase 5). See [docs/state.md](docs/state.md).
 
-## v1 scope
+## What it does
 
-- Wallet: pUSD balance, portfolio value, open and closed positions, open orders, trade history.
-- Lookup: paste a Polymarket event URL, slug, or id and see its markets and order books.
-- Trade: limit and market orders with server-side safety checks, and cancel.
+- **Browse** (home page): trending, new and ending-soon events, eight categories, and keyword
+  search, with each event's leading outcomes, 24h volume and end date. No key needed.
+- **Lookup**: paste a Polymarket event URL, slug, or id to jump straight to its markets and live
+  order books.
+- **Trade**: limit and market orders with server-side safety checks; your open orders on an event
+  appear under it with Cancel.
+- **Portfolio** (`/portfolio`): pUSD balance, portfolio value, open and closed positions, open
+  orders, trade history and activity.
 
-Browsing by category, trending markets and charts come later ([docs/plan.md](docs/plan.md)).
+Price charts, live streaming books and redeeming winnings come later ([docs/plan.md](docs/plan.md)).
 
 ## Before you trade
 

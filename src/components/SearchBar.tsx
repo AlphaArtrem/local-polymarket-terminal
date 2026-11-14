@@ -3,9 +3,10 @@
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import type { LookupResult } from "@/lib/market";
+import { routeSearchInput, searchHref } from "./browse/helpers";
 import styles from "./market/market.module.css";
 
-/** Header search: resolves any Polymarket URL/slug/id via /api/lookup, then opens the event page. */
+/** Header search: URLs/ids/slugs resolve via /api/lookup; free text goes to Browse search (see routeSearchInput). */
 export function SearchBar() {
   const router = useRouter();
   const [value, setValue] = useState("");
@@ -15,12 +16,25 @@ export function SearchBar() {
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     if (busy) return;
+    const text = value.trim();
+    if (!text) return;
+    const route = routeSearchInput(text);
+    if (route.action === "search") {
+      setError(null);
+      router.push(searchHref(route.q));
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
-      const res = await fetch(`/api/lookup?q=${encodeURIComponent(value)}`, { cache: "no-store" });
+      const res = await fetch(`/api/lookup?q=${encodeURIComponent(text)}`, { cache: "no-store" });
       const body: unknown = await res.json();
       if (!res.ok) {
+        const code = (body as { error?: { code?: string } }).error?.code;
+        if (route.fallbackQ && (res.status === 404 || code === "NOT_FOUND")) {
+          router.push(searchHref(route.fallbackQ));
+          return;
+        }
         setError((body as { error?: { message?: string } }).error?.message ?? `Lookup failed (${res.status})`);
         return;
       }
@@ -40,7 +54,7 @@ export function SearchBar() {
         className={styles.searchInput}
         value={value}
         onChange={(e) => setValue(e.target.value)}
-        placeholder="Paste a Polymarket URL, slug, id or condition id"
+        placeholder="Search markets or paste a Polymarket URL"
         aria-label="Search markets"
         disabled={busy}
       />
