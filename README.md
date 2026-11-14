@@ -133,3 +133,12 @@ Open a market (`/market/<event-slug>`), pick a row, and use the ticket on the ri
 | Enable trading: `Polymarket request failed`, log mentions an RPC `status 400` | `POLYGON_RPC_URL` points at an RPC that rejects large batches; use the default or another provider. |
 | Balance 0 after a deposit | Check `https://bridge.polymarket.com/status/<your evm deposit address>`; deposits below the minimum are not processed. |
 | Badge shows close-only | Your connection is in a country where Polymarket's API allows closing positions only. Turn any VPN off. |
+
+## Disclaimer
+
+This is an independent project, not affiliated with or endorsed by Polymarket. It trades real
+money with your own keys; use it at your own risk and only where Polymarket's terms allow you to.
+
+## License
+
+[MIT](LICENSE)
