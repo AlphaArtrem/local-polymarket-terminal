@@ -12,6 +12,7 @@
 - Market orders now pass `maxSpend` (fees can no longer exceed the per-order cap) and a 5¢ worst-price bound.
 - Dashboard shows an **Enable trading** notice when the wallet lacks its trading approvals; `GET/POST /api/approvals` checks and submits them after confirmation. README covers funding through the Polymarket bridge.
 - Enable trading now works with a Relayer API key (`POLYMARKET_RELAYER_API_KEY`, `POLYMARKET_RELAYER_API_KEY_ADDRESS`) and explains when it is missing; new `POLYGON_RPC_URL` (default publicnode) because the SDK's default RPC rejects large batches; rejection logs include Polymarket's status and message.
+- Event page: price chart for the selected outcome (1H/6H/1D/1W/1M/MAX, hover, change over range), live order book over Server-Sent Events with a polling fallback, and a live trade tape (`/api/history`, `/api/stream`). Single-market events open with that market selected.
 - Browse home page: trending, new and ending-soon events, eight categories, keyword search from the header (`/api/events`, `/api/categories`, `/api/search`); recurring up/down events excluded via Polymarket's own tags. The wallet dashboard moved to `/portfolio`.
 - Event page: "Your orders" strip lists open orders on that event with Cancel (polls every 10 s).
 - Enable trading re-reads the approval state for up to ~12 s after submitting, so it no longer reports approvals as missing while the state catches up.

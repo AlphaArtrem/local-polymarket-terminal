@@ -2,7 +2,7 @@
 
 A local Polymarket trading terminal: a website-like UI on `127.0.0.1` that talks to Polymarket's
 public APIs with the user's own wallet. Phases 0–3 are built; [state.md](state.md) says what
-exists. **Phases 0–5 are done; next is Phase 6 (charts and live data).**
+exists. **Phases 0–6 are done; next is Phase 7 (redeem, cancel-all, alerts).**
 
 Each phase ends in a **demonstration**, not just green tests. Slices are sized for one
 implementer agent each, with explicit file ownership so parallel slices never touch the same file.
@@ -255,10 +255,67 @@ listed; click it → the existing event page with a live order book. `npm run ch
 
 ---
 
+## Phase 6 — Charts and live data (slices G and H, parallel) — done 2026-11-14
+
+**Goal:** the event page shows a price chart for the selected outcome with range buttons, and the
+order book updates live (with recent trades), instead of a static snapshot.
+
+Probed live on 2026-11-14 (record as external facts in slice G/H):
+
+- `listPriceHistory({ assetId, interval }).firstPage()` works for every `PriceHistoryInterval`
+  (`1h, 6h, 1d, 1w, 1m, max`); items are `{ timestamp (ms), price (decimal string),
+  resolutionSeconds }`, oldest first, single page. Ian Buck: 1h 58 pts, 6h 358, 1d 1438, 1w 603,
+  1m 100, max 5.
+- `client.subscribe([{ topic: "market", assetIds: [id] }])` returns an async iterable with
+  `close()`. It sends a full `book` snapshot within ~1.3 s, then `price_change` (per-level updates:
+  `{ assetId, price, size, side }`, size 0 removes the level), `last_trade_price`, `tick_size_change`,
+  and with `customFeatureEnabled` also `best_bid_ask`, `market_resolved`, `new_market`. A quiet
+  market can send nothing else for 20 s+.
+
+Contract: `src/lib/live-types.ts` (main session).
+
+### Slice G — price history + chart (implementer)
+
+Owner of: `src/server/history.ts`, `src/app/api/history/route.ts`, `src/lib/chart.ts`,
+`src/components/market/PriceChart.tsx`, `src/components/market/chart.module.css`,
+`tests/history*.test.ts`, `tests/chart*.test.ts`, `tests/fixtures/history-*.json`.
+
+- Server: validate `assetId` (numeric) and `range`; map to the SDK interval; downsample to ≤ 500
+  points; 30 s cache per (asset, range).
+- `src/lib/chart.ts` (pure): scale points to an SVG viewBox, build the path, y-axis ticks in cents,
+  x-axis labels per range, nearest-point lookup for hover.
+- `PriceChart`: hand-written SVG (no new dependency), range buttons, hover crosshair + tooltip
+  (price in cents, time), current price and change over the range, loading/empty/error states,
+  responsive width.
+
+### Slice H — live book + trade tape (implementer)
+
+Owner of: `src/lib/book-state.ts`, `src/server/stream.ts`, `src/app/api/stream/route.ts`,
+`src/components/market/useLiveBook.ts`, `src/components/market/OrderBook.tsx`,
+`src/components/market/TradeTape.tsx`, `tests/stream*.test.ts`, `tests/book-state*.test.ts`.
+
+- `book-state.ts` (pure): apply `book` snapshots and `price_change` updates to a book, derive
+  midpoint and spread, output `BookDTO` (levels worst-first like `/api/book`).
+- `/api/stream`: Next route handler returning a `ReadableStream` (SSE). One SDK subscription per
+  request, closed on `request.signal` abort or error; throttled `book` events, `trade` events,
+  15 s `ping`. Read `node_modules/next/dist/docs` for streaming responses in Next 16.
+- `useLiveBook(assetId)`: `EventSource`; on error falls back to polling `/api/book` every 5 s and
+  retries the stream with backoff. `OrderBook` uses it (briefly highlights changed levels) and
+  shows a "live" / "polling" indicator. `TradeTape` lists the last ~30 prints.
+
+### Main session
+
+Integrate into `MarketView` (chart above the book, tape below it), full check, browser acceptance.
+
+**Accept:** open the NVIDIA event → chart for the selected candidate with all six ranges and
+hover; book shows "live" and changes without reloading; recent trades appear on an active market;
+killing the network falls back to polling. `npm run check` green.
+
+---
+
 ## Later phases (not v1)
 
 | Phase | Scope |
 | - | - |
-| 6 | Price charts (`listPriceHistory`), live books and fills over WebSocket (humanplane/terminal does this well; see state.md). |
 | 7 | Redeem resolved positions (relayer key now in place), cancel-all, price alerts. |
 | 8 | Order types beyond v1: GTD expiry, TWAP, take-profit/stop-loss (`placePositionTpSl`). |

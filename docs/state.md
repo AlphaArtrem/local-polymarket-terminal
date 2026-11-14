@@ -35,6 +35,13 @@ v1 is live-tested with a real wallet (order placed and cancelled, 2026-11-14). `
   for recurring events), pure `toEventCard` (`src/lib/event-card.ts`), routes
   `/api/{events,categories,search}`, UI in `src/components/browse/`; dashboard at `/portfolio`.
 
+- **Phase 6 — charts and live data** (event page): `PriceChart` (hand-written SVG, pure math in
+  `src/lib/chart.ts`, `/api/history` with 30 s cache and ≤ 500 points); live book via
+  `/api/stream` (SSE from one SDK market subscription per viewer, pure book reducer in
+  `src/lib/book-state.ts`, `book` ≤ 4/s, `trade`, 15 s `ping`); `useLiveBook` shares one
+  EventSource per asset and falls back to polling `/api/book`; `TradeTape`; contract
+  `src/lib/live-types.ts`.
+
 Verified live without a key (2026-11-13): NVIDIA lookup by URL, market URL, condition id and id;
 24 listed candidates; live order books; search routing; not-configured states; Host and Origin
 rejections (403); order POST without key → 503.
@@ -76,6 +83,6 @@ Each names what breaks silently if violated.
 
 ## Next action
 
-Phase 5 accepted in the browser on 2026-11-14 (trending, Crypto chip, New without up/down spam,
-search "nvidia" → event page, Load more, `/portfolio`, 375 px). Next: Phase 6 (price charts, live
-books over WebSocket) when the user asks.
+Phase 6 accepted in the browser on 2026-11-14 (chart ranges + hover, live book "● live", trade
+tape on a 5-minute BTC market, polling fallback with EventSource forced to fail, 375 px). Next:
+Phase 7 (redeem resolved positions, cancel-all, price alerts) when the user asks.

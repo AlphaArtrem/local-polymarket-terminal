@@ -4,6 +4,8 @@ import { useMemo, useState } from "react";
 import type { EventDTO, MarketDTO, SelectedOutcome } from "@/lib/market";
 import { cents, shortDate, usd } from "./fmt";
 import { OrderBook } from "./OrderBook";
+import { PriceChart } from "./PriceChart";
+import { TradeTape } from "./TradeTape";
 import { TradeTicket } from "./TradeTicket";
 import { YourOrders } from "./YourOrders";
 import styles from "./market.module.css";
@@ -34,7 +36,12 @@ export function MarketView({ event, markets, initialAssetId, initialSide, config
   const [filter, setFilter] = useState("");
   const [showInactive, setShowInactive] = useState(false);
   const hiddenCount = useMemo(() => markets.filter((m) => !m.listed).length, [markets]);
-  const [marketId, setMarketId] = useState<string | null>(initial?.marketId ?? null);
+  // A single-market event (binary questions, 5-minute crypto markets) opens with that market selected.
+  const onlyListed = useMemo(() => {
+    const l = markets.filter((m) => m.listed);
+    return l.length === 1 ? l[0]!.id : null;
+  }, [markets]);
+  const [marketId, setMarketId] = useState<string | null>(initial?.marketId ?? onlyListed);
   const [side, setSide] = useState(initial?.side ?? 0);
 
   const needle = filter.trim().toLowerCase();
@@ -127,7 +134,9 @@ export function MarketView({ event, markets, initialAssetId, initialSide, config
                   ))}
                 </div>
               </div>
+              <PriceChart key={`chart-${outcome.assetId}`} assetId={outcome.assetId} label={outcome.label} />
               <OrderBook key={outcome.assetId} assetId={outcome.assetId} label={outcome.label} />
+              <TradeTape key={`tape-${outcome.assetId}`} assetId={outcome.assetId} />
             </>
           ) : (
             <div className={styles.muted}>Select a market to see its order book.</div>

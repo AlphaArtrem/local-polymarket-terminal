@@ -110,3 +110,14 @@ affected since v1; mocked tests passed because the mock returned data from any c
 Fix: `pageAt()` in `src/server/portfolio.ts` calls `.firstPage()` when there is no cursor; the
 test mock now mirrors the SDK's empty `.from(undefined)`, with a regression test.
 
+## H12 — Live book stuck on "Loading" (Lesson, 2026-11-14)
+
+What happened: in browser acceptance the order book never left "Loading…" although `/api/stream`
+returned 200 and sent `book` events. `useLiveBook` passed an inline subscribe function to
+`useSyncExternalStore`, so React resubscribed on every render; the ref-counted store hit zero
+listeners each time, closed the EventSource and reset state. The network log showed a run of
+aborted `/api/stream` requests. Unit tests passed because they cover the pure reducer, not React.
+
+Fix: subscribe/getSnapshot are memoised per asset, and the store waits 2 s with no listeners
+before closing the connection (survives re-renders and Strict Mode double mounts).
+
