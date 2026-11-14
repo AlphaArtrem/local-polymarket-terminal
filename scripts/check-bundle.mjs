@@ -11,6 +11,7 @@ if (!existsSync(root)) {
 if (existsSync(".env.local")) process.loadEnvFile(".env.local");
 const key = (process.env.POLYMARKET_PRIVATE_KEY ?? "").trim().toLowerCase();
 const hasKey = /^0x[0-9a-f]{64}$/.test(key);
+const relayerKey = (process.env.POLYMARKET_RELAYER_API_KEY ?? "").trim();
 
 function* walk(dir) {
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
@@ -26,6 +27,8 @@ for (const file of walk(root)) {
   files += 1;
   const text = readFileSync(file, "utf8");
   if (text.includes("POLYMARKET_PRIVATE_KEY")) hits.push(`${file}: contains POLYMARKET_PRIVATE_KEY`);
+  if (text.includes("POLYMARKET_RELAYER_API_KEY")) hits.push(`${file}: contains POLYMARKET_RELAYER_API_KEY`);
+  if (relayerKey && text.includes(relayerKey)) hits.push(`${file}: contains the relayer API key value`);
   if (hasKey && text.toLowerCase().includes(key)) hits.push(`${file}: contains the private key value`);
 }
 

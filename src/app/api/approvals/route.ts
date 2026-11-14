@@ -1,4 +1,5 @@
-import { enableTrading, getApprovalStatus } from "@/server/approvals";
+import { jsonError } from "@/lib/http";
+import { enableTrading, getApprovalStatus, RelayerKeyMissingError } from "@/server/approvals";
 import { tradingError } from "@/server/orders/errors";
 
 export const dynamic = "force-dynamic";
@@ -22,6 +23,7 @@ export async function POST() {
   try {
     return Response.json(await enableTrading(), noStore);
   } catch (err) {
+    if (err instanceof RelayerKeyMissingError) return jsonError(400, "RELAYER_KEY_REQUIRED", err.message);
     return tradingError(err, "approvals setup");
   }
 }

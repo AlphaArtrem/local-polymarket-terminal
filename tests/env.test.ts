@@ -1,12 +1,19 @@
 import { describe, expect, it } from "vitest";
-import { EnvError, parseEnv } from "@/lib/parse-env";
+import { DEFAULT_POLYGON_RPC_URL, EnvError, parseEnv } from "@/lib/parse-env";
 
 const KEY = "0x" + "ab".repeat(32);
 const WALLET = "0x" + "12".repeat(20);
 
 describe("parseEnv", () => {
   it("applies defaults with an empty env", () => {
-    expect(parseEnv({})).toEqual({ privateKey: undefined, walletAddress: undefined, maxOrderUsdc: 25, port: 3737 });
+    expect(parseEnv({})).toEqual({
+      privateKey: undefined,
+      walletAddress: undefined,
+      relayer: undefined,
+      maxOrderUsdc: 25,
+      polygonRpcUrl: DEFAULT_POLYGON_RPC_URL,
+      port: 3737,
+    });
   });
 
   it("treats blank values as unset", () => {
@@ -40,5 +47,26 @@ describe("parseEnv", () => {
     expect(() => parseEnv({ MAX_ORDER_USDC: "-1" })).toThrow(EnvError);
     expect(() => parseEnv({ MAX_ORDER_USDC: "abc" })).toThrow(EnvError);
     expect(() => parseEnv({ PORT: "70000" })).toThrow(EnvError);
+  });
+
+  it("accepts an https POLYGON_RPC_URL and rejects http", () => {
+    expect(parseEnv({ POLYGON_RPC_URL: "https://rpc.example.com/x" }).polygonRpcUrl).toBe("https://rpc.example.com/x");
+    expect(() => parseEnv({ POLYGON_RPC_URL: "http://rpc.example.com" })).toThrow(/POLYGON_RPC_URL: must be an https URL/);
+  });
+
+  it("requires the relayer key and its address together", () => {
+    const address = "0x" + "34".repeat(20);
+    expect(parseEnv({ POLYMARKET_RELAYER_API_KEY: "k", POLYMARKET_RELAYER_API_KEY_ADDRESS: address }).relayer).toEqual({ key: "k", address });
+    expect(() => parseEnv({ POLYMARKET_RELAYER_API_KEY: "k" })).toThrow(/set both/);
+    expect(() => parseEnv({ POLYMARKET_RELAYER_API_KEY_ADDRESS: address })).toThrow(/set both/);
+  });
+
+  it("never echoes the relayer key in errors", () => {
+    try {
+      parseEnv({ POLYMARKET_RELAYER_API_KEY: "SECRET-RELAYER-VALUE" });
+      throw new Error("expected EnvError");
+    } catch (err) {
+      expect(String((err as Error).message)).not.toContain("SECRET-RELAYER-VALUE");
+    }
   });
 });

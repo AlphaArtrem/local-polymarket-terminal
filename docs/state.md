@@ -5,7 +5,7 @@ Edit in place. This file says what exists today, not what is planned (that is [p
 ## What exists
 
 v1 is code-complete and waiting for the user's live test. `npm run check` passes (18 test files,
-167 tests, build, client-bundle secret scan) on Node 24, 2026-11-14.
+171 tests, build, client-bundle secret scan) on Node 24, 2026-11-14.
 
 - **Phase 0 — foundation.** Next.js 16 on Node 24; env parsing (`src/lib/parse-env.ts`,
   `src/server/env.ts`); SDK clients (`src/server/polymarket.ts`); trading mode from the API
@@ -21,7 +21,9 @@ v1 is code-complete and waiting for the user's live test. `npm run check` passes
   live order book, `?asset=` preselect.
 - **Trading approvals.** Dashboard notice with an **Enable trading** button while the wallet
   lacks its approvals (F14f); `GET/POST /api/approvals`, logic in `src/server/approvals.ts`,
-  one setup in flight at a time. The user's wallet showed 3 approvals missing on 2026-11-14.
+  one setup in flight at a time. Needs `POLYMARKET_RELAYER_API_KEY` + `_ADDRESS` (F14f) and an RPC
+  that accepts large batches (`POLYGON_RPC_URL`, F14g). Wallet funded with 5 pUSD; approvals set
+  through the dashboard on 2026-11-14 (`isFullyApproved: true`; the state lagged a few seconds).
 - **Phase 3 — trading.** Ticket (Buy/Sell, Yes/No, limit or market) with confirm dialog;
   `POST /api/orders`, `DELETE /api/orders/[id]`; server re-fetches market, book, access and held
   size, then `src/server/orders/validate.ts`; market orders carry `maxSpend` and a ±5¢ price

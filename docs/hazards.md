@@ -75,3 +75,16 @@ Guard: `MAX_ORDER_USDC` cap on buys enforced on the server (default 25) and pass
 as `maxSpend` so fees cannot push a market buy past it; market orders bounded to 5¢ beyond the
 best quote (`src/server/orders/bounds.ts`); a confirm dialog showing shares, price, total cost
 and outcome; no one-click trading in v1.
+
+## H9 — Wallet operations fail on the SDK's default RPC (Lesson, 2026-11-14)
+
+What happened: the first **Enable trading** click returned `UPSTREAM_ERROR`. The server log showed
+only `RequestRejectedError`. With the rejection's status and message logged, it was
+`JSON-RPC request to https://polygon.drpc.org failed with status 400`: the free dRPC tier refuses
+batches over 10 requests (external-facts F14g). After switching the RPC, the next failure was the
+missing Relayer API key (F14f). Nothing was submitted on-chain by either attempt.
+
+Fix: `POLYGON_RPC_URL` (default publicnode) is passed to the SDK; `POLYMARKET_RELAYER_API_KEY`
+and `_ADDRESS` are wired in; `/api/approvals` returns `RELAYER_KEY_REQUIRED` with setup steps when
+the key is absent; trading-route logs now include Polymarket's status, code and message.
+

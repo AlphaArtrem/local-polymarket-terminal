@@ -6,6 +6,9 @@ const fetchTradingApprovalsState = vi.fn();
 const setupTradingApprovals = vi.fn();
 const getSecureClient = vi.fn(async () => ({ fetchTradingApprovalsState, setupTradingApprovals }));
 
+let relayer: { key: string; address: string } | undefined = { key: "test-relayer-key", address: "0x" + "1".repeat(40) };
+vi.mock("@/server/env", () => ({ getEnv: () => ({ relayer }) }));
+
 vi.mock("@/server/polymarket", () => {
   class NotConfiguredError extends Error {}
   return { NotConfiguredError, getSecureClient };
@@ -22,6 +25,7 @@ const approvedState = { isFullyApproved: true, missing: { erc20: [], erc1155: []
 
 beforeEach(() => {
   vi.clearAllMocks();
+  relayer = { key: "test-relayer-key", address: "0x" + "1".repeat(40) };
   vi.spyOn(console, "error").mockImplementation(() => undefined);
   vi.spyOn(console, "info").mockImplementation(() => undefined);
 });
@@ -51,6 +55,17 @@ describe("POST /api/approvals", () => {
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ approved: true, missing: 0 });
     expect(setupTradingApprovals).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns 400 RELAYER_KEY_REQUIRED without a relayer key, submitting nothing", async () => {
+    relayer = undefined;
+    fetchTradingApprovalsState.mockResolvedValue(missingState);
+    const res = await POST();
+    expect(res.status).toBe(400);
+    const body = await res.json();
+    expect(body.error.code).toBe("RELAYER_KEY_REQUIRED");
+    expect(body.error.message).toContain("POLYMARKET_RELAYER_API_KEY");
+    expect(setupTradingApprovals).not.toHaveBeenCalled();
   });
 
   it("does nothing when already approved", async () => {

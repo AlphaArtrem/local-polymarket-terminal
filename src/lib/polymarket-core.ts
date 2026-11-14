@@ -1,4 +1,4 @@
-import { createPublicClient, createSecureClient } from "@polymarket/client";
+import { createPublicClient, createSecureClient, forkEnvironmentConfig, relayerApiKey } from "@polymarket/client";
 import { fetchBalanceAllowance } from "@polymarket/client/actions";
 import { AssetType } from "@polymarket/client";
 import { privateKey } from "@polymarket/client/viem";
@@ -28,7 +28,14 @@ export function buildPublicClient(): PublicClient {
 
 export async function buildSecureClient(env: Env): Promise<SecureClient> {
   if (!env.privateKey || !env.walletAddress) throw new NotConfiguredError();
-  return createSecureClient({ wallet: env.walletAddress, signer: privateKey(env.privateKey) });
+  return createSecureClient({
+    wallet: env.walletAddress,
+    signer: privateKey(env.privateKey),
+    // Production config with only the Polygon RPC replaced (see POLYGON_RPC_URL in parse-env.ts).
+    environment: forkEnvironmentConfig({ name: "production", rpc: env.polygonRpcUrl }),
+    // Gasless wallet operations (trading approvals) are refused by the SDK without this.
+    ...(env.relayer ? { apiKey: relayerApiKey(env.relayer) } : {}),
+  });
 }
 
 export const GEOBLOCK_URL = "https://polymarket.com/api/geoblock";
