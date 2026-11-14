@@ -1,0 +1,10 @@
+{
+  "address": {
+    "evm": "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd",
+    "svm": "SyntheticSolanaAddress1111111111111111111111",
+    "tron": "TSyntheticTronAddress11111111111111",
+    "btc": "bc1qsyntheticbtcaddress000000000000000000"
+  },
+  "note": "Synthetic fixture. Not a real deposit address.",
+  "warnings": [{ "code": "EXAMPLE", "message": "synthetic warning" }]
+}

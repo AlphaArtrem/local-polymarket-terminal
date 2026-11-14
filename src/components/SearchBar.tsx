@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import type { LookupResult } from "@/lib/market";
+import { SEARCH_INPUT_ID } from "@/lib/shortcuts";
 import { routeSearchInput, searchHref } from "./browse/helpers";
 import styles from "./market/market.module.css";
 
@@ -51,6 +52,11 @@ export function SearchBar() {
   return (
     <form className={styles.searchForm} onSubmit={onSubmit} role="search">
       <input
+        id={SEARCH_INPUT_ID}
+        aria-keyshortcuts="Meta+K Control+K /"
+        onKeyDown={(e) => {
+          if (e.key === "Escape") e.currentTarget.blur();
+        }}
         className={styles.searchInput}
         value={value}
         onChange={(e) => setValue(e.target.value)}

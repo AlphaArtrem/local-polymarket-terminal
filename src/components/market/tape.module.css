@@ -1,9 +1,14 @@
 .status { font-size: 11px; }
-.live { color: var(--ok); }
+.live { color: var(--pos); }
 .polling, .connecting { color: var(--muted); }
 .flash { animation: flash 600ms ease-out; }
-@keyframes flash { from { background: var(--border); } to { background: transparent; } }
+@keyframes flash { from { background: var(--surface-3); } to { background: transparent; } }
 @media (prefers-reduced-motion: reduce) { .flash { animation: none; } }
-.buy td:nth-child(2) { color: var(--ok); }
-.sell td:nth-child(2) { color: var(--bad); }
-.tape { max-height: 240px; overflow-y: auto; }
+.tapeWrap { min-width: 0; padding: var(--s-3); }
+.tape { max-height: 280px; overflow-y: auto; font-family: var(--font-num); font-variant-numeric: tabular-nums; font-size: 12px; }
+.row { display: grid; grid-template-columns: 1.2fr 0.8fr 1fr 1fr; gap: var(--s-2); padding: 3px var(--s-2); text-align: right; }
+.row > span:first-child, .row > span:nth-child(2) { text-align: left; }
+.head { position: sticky; top: 0; background: var(--surface-1); color: var(--muted); font-family: var(--font-ui); font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; border-bottom: 1px solid var(--border); }
+.buy > span:nth-child(2), .buy > span:nth-child(3) { color: var(--pos); }
+.sell > span:nth-child(2), .sell > span:nth-child(3) { color: var(--neg); }
+.empty { color: var(--muted); }

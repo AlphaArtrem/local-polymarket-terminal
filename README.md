@@ -22,9 +22,11 @@ in a local env file.
 - **Advanced orders**: limit orders that expire (GTD) or are post-only, and optional take-profit /
   stop-loss and TWAP rules that this app executes for you while it runs (`/automation`).
 - **Portfolio** (`/portfolio`): pUSD balance, portfolio value, open and closed positions, open
-  orders, trade history and activity.
-
-Advanced order types (expiry, take-profit/stop-loss) come later ([docs/plan.md](docs/plan.md)).
+  orders, trade history and activity, with **Export CSV** on each tab and a **Deposit** dialog.
+- **Watchlist**: star an event or outcome (browse cards, market header); the Browse sidebar shows
+  starred outcomes with live prices and the change since you starred them. Stored only in your
+  browser.
+- **Keyboard shortcuts**: press `?` for the list (see [Keyboard shortcuts](#keyboard-shortcuts)).
 
 ## Before you trade
 
@@ -88,8 +90,10 @@ npm run dev      # http://127.0.0.1:3737
 
 ### 5. Fund the wallet
 
-Send funds through Polymarket's bridge, not to the wallet address directly. Get your personal
-deposit addresses:
+Send funds through Polymarket's bridge, not to the wallet address directly. The easiest way:
+**Portfolio → Deposit** shows your bridge address for USDC or USDC.e on Polygon, with the current
+minimum (the app only fetches the address; it never sends funds). Or get all your deposit
+addresses yourself:
 
 ```bash
 curl -X POST https://bridge.polymarket.com/deposit \
@@ -148,6 +152,26 @@ What to know before you turn it on:
   trading mode, 5¢ slippage bound). A refused order stops the rule; if an order call fails midway
   the rule stops too (it may or may not have been placed: check Open orders and Trades); three
   failures in a row pause everything.
+
+### Keyboard shortcuts
+
+| Keys | Action |
+| - | - |
+| ⌘K / Ctrl+K, `/` | Focus search |
+| `g` then `b` / `p` / `a` | Go to Browse / Portfolio / Alerts |
+| `b` / `s` | On a market: set the ticket to Buy / Sell and focus its first field |
+| `y` / `n` | On a market: select the Yes / No outcome (first / second) |
+| `?` | Show all shortcuts; single-key shortcuts can be switched off there |
+| Esc | Close a dialog, leave the search box |
+
+Shortcuts never review, confirm or place an order: that always takes a click. Single keys do
+nothing while typing in a field or while any dialog (such as the order confirmation) is open.
+
+### Export
+
+**Export CSV** on each Portfolio tab downloads every row of that tab (up to 2,000) as
+`polymarket-<tab>-<date>.csv`. Values are raw (prices as decimals, times in ISO-8601 UTC); cells
+that start like a spreadsheet formula get a leading `'`.
 
 ## First live test
 

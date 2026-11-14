@@ -4,11 +4,15 @@ import { useCallback, useEffect, useState } from "react";
 import { activityColumns, closedPositionColumns, orderColumns, positionColumns, tradeColumns } from "./columns";
 import styles from "./dashboard.module.css";
 import { CancelAllButton } from "../CancelAllButton";
+import { DepositButton } from "../deposit/DepositButton";
+import { AutomationStatus } from "./AutomationStatus";
 import { DataPanel } from "./DataPanel";
+import { ExportCsvButton } from "./ExportCsvButton";
 import { EnableTrading } from "./EnableTrading";
 import { NotConfiguredHint } from "./NotConfiguredHint";
 import { RedeemBanner } from "./RedeemBanner";
 import { Summary } from "./Summary";
+import type { ExportKind } from "@/lib/export";
 import type { ActivityDto, OrderDto, Page, PositionDto, TradeDto } from "./types";
 import { useApi } from "./useApi";
 
@@ -16,6 +20,14 @@ const POLL_MS = 30_000;
 
 const TABS = ["Open positions", "Closed positions", "Open orders", "Trade history", "Activity"] as const;
 type Tab = (typeof TABS)[number];
+
+const EXPORT_KIND: Record<Tab, ExportKind> = {
+  "Open positions": "positions-open",
+  "Closed positions": "positions-closed",
+  "Open orders": "orders",
+  "Trade history": "trades",
+  Activity: "activity",
+};
 
 export function Dashboard({ configured }: { configured: boolean }) {
   const [tab, setTab] = useState<Tab>("Open positions");
@@ -41,28 +53,29 @@ export function Dashboard({ configured }: { configured: boolean }) {
   if (!configured) return <NotConfiguredHint />;
 
   return (
-    <div>
+    <div className={styles.page}>
+      <div className={styles.head}>
+        <h1 className={styles.title}>Portfolio</h1>
+        <DepositButton />
+      </div>
       <EnableTrading refreshToken={refreshToken} />
       <RedeemBanner refreshToken={refreshToken} onRedeemed={refresh} />
-      <Summary refreshToken={refreshToken} />
+      <Summary refreshToken={refreshToken} extra={<AutomationStatus />} />
       <div className={styles.toolbar}>
-        <div className={styles.tabs} role="tablist">
+        <div className={`pill-tabs ${styles.tabs}`} role="tablist">
           {TABS.map((t) => (
-            <button
-              key={t}
-              type="button"
-              role="tab"
-              aria-selected={t === tab}
-              className={`${styles.tab} ${t === tab ? styles.tabActive : ""}`}
-              onClick={() => setTab(t)}
-            >
+            <button key={t} type="button" role="tab" aria-selected={t === tab} onClick={() => setTab(t)}>
               {t}
             </button>
           ))}
         </div>
-        <button type="button" className={styles.button} onClick={refresh}>
-          Refresh
-        </button>
+        <div className={styles.actions}>
+          {tab === "Open orders" && <CancelAllOrders refreshToken={refreshToken} onDone={refresh} />}
+          <ExportCsvButton key={tab} kind={EXPORT_KIND[tab]} />
+          <button type="button" className="btn btn-ghost" onClick={refresh}>
+            Refresh
+          </button>
+        </div>
       </div>
       {tab === "Open positions" && (
         <DataPanel<PositionDto>
@@ -82,7 +95,6 @@ export function Dashboard({ configured }: { configured: boolean }) {
           refreshToken={refreshToken}
         />
       )}
-      {tab === "Open orders" && <CancelAllOrders refreshToken={refreshToken} onDone={refresh} />}
       {tab === "Open orders" && (
         <DataPanel<OrderDto>
           endpoint="/api/orders"
@@ -119,9 +131,9 @@ function CancelAllOrders({ refreshToken, onDone }: { refreshToken: number; onDon
   const { data } = useApi<Page<OrderDto>>("/api/orders", refreshToken);
   if (!data) return null;
   return (
-    <div className={styles.more}>
+    <>
       <CancelAllButton count={data.items.length} label="Cancel all open orders" onDone={onDone} />
-    </div>
+    </>
   );
 }
 

@@ -61,6 +61,17 @@ v1 is live-tested with a real wallet (order placed and cancelled, 2026-11-14). `
   `/api/automation{,/rules,/rules/[id],/control}` behind `AUTOMATION_ENABLED`; UI
   `src/components/automation/*`, `/automation`, header link. Contract `src/lib/phase8-types.ts`.
 
+- **Phase 9 — Redesign, watchlist, shortcuts, export, deposit.** Tokens and shared classes in
+  `src/app/globals.css` (legacy variable names kept as aliases); `Header` with `NavLink`,
+  `HeaderAccount`, `?` help button. Watchlist: `src/lib/watchlist.ts`,
+  `src/components/watchlist/*`, localStorage `pmterm.watchlist.v1` (cap 50), polls `/api/prices`
+  every 15 s while visible. Shortcuts: pure `src/lib/shortcuts.ts`, `ShortcutsProvider` in the
+  layout (one keydown listener; ticket actions via the `pmterm:shortcut` window event, help via
+  `pmterm:open-help`), localStorage `pmterm.shortcuts.v1`. Export: `src/lib/{csv,export}.ts`,
+  `ExportCsvButton` (walks pages, cap 40 × 50 rows). Deposit: `src/lib/deposit.ts`,
+  `src/server/deposit.ts`, `POST /api/deposit` (bridge EVM address for the account wallet; 409
+  `WALLET_CONFIG`, 502 `BAD_UPSTREAM` with no address), `src/components/deposit/*`.
+
 Verified live without a key (2026-11-13): NVIDIA lookup by URL, market URL, condition id and id;
 24 listed candidates; live order books; search routing; not-configured states; Host and Origin
 rejections (403); order POST without key → 503.
@@ -69,7 +80,7 @@ rejections (403); order POST without key → 503.
 cancel, close-only detection via `fetchClosedOnlyMode`, and the ticket's enabled state. No
 order has ever been sent.
 
-**Not built:** nothing planned beyond Phase 8.
+**Not built:** nothing planned beyond Phase 9 (a deposit QR code was left out to avoid a new dependency).
 
 ## Settled decisions
 
@@ -95,6 +106,8 @@ Each names what breaks silently if violated.
 4. **Outcome → assetId mapping lives in one tested function.** Violated → orders on the wrong outcome (H4). Enforced by: `src/lib/market.ts` tests against the NVIDIA fixture.
 5. **SDK version is exact-pinned.** Violated → silent breakage on install (H7). Enforced by: `package.json` review.
 6. **Automation never re-fires an order whose outcome is unknown.** Violated → duplicate unattended orders (H13). Enforced by: `firing` persisted before the SDK call, interrupted and thrown placements end the rule; `tests/automation-engine.test.ts`.
+7. **No keyboard shortcut submits, reviews or confirms an order, and single-key shortcuts are inert while any dialog is open.** Violated → a key press changes or sends an order the user did not see (H15). Enforced by: `ACTION_KINDS` allow-list and dialog checks in `tests/shortcuts.test.ts`; the ticket ignores actions while confirming or submitting.
+8. **The app never sends funds, and Deposit never offers the signer or account-wallet address as a target.** Violated → lost or uncredited deposits (H14). Enforced by: `tests/deposit.test.ts` (one bridge POST with the wallet, signer never sent, no address on upstream failure, no order or transfer calls in the deposit sources).
 
 ## Open questions
 
@@ -104,10 +117,11 @@ Each names what breaks silently if violated.
 
 ## Next action
 
-Phase 8 accepted in the browser on 2026-11-14 on a separate server with automation enabled and
-the engine paused: ticket shows Expires and Post only; a TP/SL rule (99¢ / 1¢) was armed through
-the confirm dialog with the held size prefilled; API rejected a trigger already met, a size over
-the holding and a TWAP slice over the cap; a TWAP rule (1¢ limit) was created; both survived a
-restart as paused (`startup`); `/automation` showed them, cancelled and removed them; the
-default server shows the "switched off" explanation. The engine was never resumed, so no rule
-fired — live firing is untested until the user enables it. No further phases planned.
+Phase 9 accepted in the browser on 2026-11-14 (port 3738, production build): the event page
+opens on its top outcome; `b`/`s`/`y`/`n` change the ticket and focus the price field; with the
+order confirmation open (Review only, nothing placed) `s`, `y`, `b`, `g` changed nothing; `?`
+opens help; a starred outcome shows in the Browse watchlist with a live price after reload;
+Export CSV produced `polymarket-positions-open-<date>.csv` (download intercepted in the page);
+Deposit showed a checksummed bridge address different from the account wallet with the live $2
+minimum. Not verified: a real deposit, exports with more than one page, the 429 path, Safari's
+handling of ⌘K. No further phases planned.

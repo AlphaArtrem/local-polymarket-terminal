@@ -36,7 +36,7 @@ export function AlertButton({ assetId, label, eventSlug, currentPrice }: Props) 
 
   return (
     <span className={styles.wrap}>
-      <button type="button" className={styles.trigger} aria-expanded={open} onClick={() => setOpen((v) => !v)}>
+      <button type="button" className="btn" aria-expanded={open} onClick={() => setOpen((v) => !v)}>
         🔔 Alert{armed > 0 ? ` (${armed})` : ""}
       </button>
       {open && (
@@ -49,6 +49,7 @@ export function AlertButton({ assetId, label, eventSlug, currentPrice }: Props) 
         >
           <div className={styles.row}>
             <select
+              className="input"
               aria-label="Direction"
               value={direction}
               onChange={(e) => setPicked(e.target.value === "below" ? "below" : "above")}
@@ -57,6 +58,7 @@ export function AlertButton({ assetId, label, eventSlug, currentPrice }: Props) 
               <option value="below">Below</option>
             </select>
             <input
+              className="input num"
               aria-label="Price in cents"
               inputMode="decimal"
               value={cents}
@@ -67,8 +69,8 @@ export function AlertButton({ assetId, label, eventSlug, currentPrice }: Props) 
           </div>
           {error && <div className={styles.error}>{error}</div>}
           <div className={styles.row}>
-            <button type="submit">Save</button>
-            <button type="button" onClick={() => setOpen(false)}>
+            <button type="submit" className="btn btn-primary">Save</button>
+            <button type="button" className="btn btn-ghost" onClick={() => setOpen(false)}>
               Cancel
             </button>
           </div>

@@ -52,7 +52,7 @@ export function EnableTrading({ refreshToken }: { refreshToken: number }) {
         so orders will be rejected.
       </p>
       <p>Enabling is a one-time on-chain step that lets the Polymarket exchange use your pUSD and outcome tokens.</p>
-      <button type="button" className={styles.button} onClick={() => setConfirming(true)}>
+      <button type="button" className={`btn btn-primary ${styles.sm}`} onClick={() => setConfirming(true)}>
         Enable trading
       </button>
       {confirming ? (

@@ -46,7 +46,7 @@ export function CancelAllButton({ count, conditionIds, label = "Cancel all", onD
   const failed = result ? Object.keys(result.notCanceled).length : 0;
   return (
     <>
-      <button type="button" className={styles.button} disabled={count === 0 || busy} onClick={() => { setError(null); setOpen(true); }}>
+      <button type="button" className={`btn btn-no ${styles.sm}`} disabled={count === 0 || busy} onClick={() => { setError(null); setOpen(true); }}>
         {label}
       </button>
       {result ? (

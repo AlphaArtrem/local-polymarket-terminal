@@ -88,30 +88,31 @@ export function AutomationList() {
         {data.paused ? (
           <div className={styles.banner} role="status">
             <span>{pausedMessage(data.pausedReason)}</span>
-            <button type="button" onClick={() => { setError(null); setDialog({ kind: "resume" }); }}>
+            <button type="button" className="btn btn-primary" onClick={() => { setError(null); setDialog({ kind: "resume" }); }}>
               Resume
             </button>
           </div>
         ) : (
-          <div className={styles.actions}>
+          <div className={styles.status}>
             <span className={styles.ok}>Running · {armedCount} armed</span>
-            <button type="button" onClick={() => void pauseAll()}>Pause all</button>
+            <button type="button" className={`btn ${styles.sm}`} onClick={() => void pauseAll()}>Pause all</button>
           </div>
         )}
         {failure && <p className={styles.error}>{failure.message}</p>}
         {error && !dialog && <p className={styles.error} role="alert">{error}</p>}
         {data.rules.length === 0 ? (
-          <p>No rules yet. Use the ⚙ Automate button on a market to add one.</p>
+          <div className="card"><p className={styles.empty}>No rules yet. Use the ⚙ Automate button on a market to add one.</p></div>
         ) : (
+          <div className={`card ${styles.panelCard}`}>
           <div className={styles.scroll}>
-            <table className={styles.table}>
+            <table className="table-dense">
               <thead>
                 <tr>
                   <th>Market</th>
                   <th>Rule</th>
                   <th>Status</th>
                   <th>Progress</th>
-                  <th>Last price</th>
+                  <th className="num">Last price</th>
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -122,28 +123,28 @@ export function AutomationList() {
                       <td>
                         <Link href={`/market/${encodeURIComponent(r.spec.eventSlug)}`}>{r.spec.label}</Link>
                       </td>
-                      <td>{describeRule(r.spec)}</td>
+                      <td className={styles.cellWrap}>{describeRule(r.spec)}</td>
                       <td>
                         {r.status}
                         {r.error ? <div className={styles.error}>{r.error}</div> : null}
                       </td>
                       <td>{progress(r, now)}</td>
-                      <td>{r.lastPrice === null ? "—" : formatCents(r.lastPrice)}</td>
-                      <td className={styles.actions}>
-                        <button type="button" aria-expanded={open.has(r.id)} onClick={() => toggle(r.id)}>
+                      <td className="num">{r.lastPrice === null ? "—" : formatCents(r.lastPrice)}</td>
+                      <td><div className={styles.actions}>
+                        <button type="button" className={`btn ${styles.sm}`} aria-expanded={open.has(r.id)} onClick={() => toggle(r.id)}>
                           Executions ({r.executions.length})
                         </button>
                         {r.status === "armed" && (
-                          <button type="button" onClick={() => { setError(null); setDialog({ kind: "cancel", rule: r }); }}>
+                          <button type="button" className={`btn btn-no ${styles.sm}`} onClick={() => { setError(null); setDialog({ kind: "cancel", rule: r }); }}>
                             Cancel
                           </button>
                         )}
                         {(r.status === "done" || r.status === "cancelled" || r.status === "error") && (
-                          <button type="button" onClick={() => void remove(r)}>
+                          <button type="button" className={`btn ${styles.sm}`} onClick={() => void remove(r)}>
                             Remove
                           </button>
                         )}
-                      </td>
+                      </div></td>
                     </tr>
                     {open.has(r.id) && (
                       <tr>
@@ -169,18 +170,21 @@ export function AutomationList() {
               </tbody>
             </table>
           </div>
+          </div>
         )}
       </>
     );
   }
 
   return (
-    <section>
-      <h1>Automation</h1>
-      <p className="muted">
-        Rules are run by this app, not Polymarket, only while the server is running. They place market
-        orders unattended. After every restart the engine starts paused and must be resumed.
-      </p>
+    <section className={styles.page}>
+      <div>
+        <h1 className={styles.title}>Automation</h1>
+        <p className={`muted ${styles.desc}`}>
+          Rules are run by this app, not Polymarket, only while the server is running. They place market
+          orders unattended. After every restart the engine starts paused and must be resumed.
+        </p>
+      </div>
       {body}
       {dialog && (
         <ConfirmDialog

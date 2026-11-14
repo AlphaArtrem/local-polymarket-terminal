@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useShortcutAction } from "@/components/shortcuts/useShortcutAction";
 import { ConfirmDialog, type ConfirmRow } from "@/components/ConfirmDialog";
 import {
   floorToStep,
@@ -131,6 +132,30 @@ export function TradeTicket({ selected, configured, initialSide, outcomeIndex, o
   }, []);
 
   const access = useAccess();
+
+  // Keyboard shortcuts: change side/outcome and move focus only. Never submit or open the confirm dialog.
+  const fieldsRef = useRef<HTMLFieldSetElement>(null);
+  const [focusToken, setFocusToken] = useState(0);
+  const accessMode = access.data ? tradingMode(access.data.geoblock ?? null, access.data.closedOnly) : null;
+  const shortcutsLive =
+    configured && selected !== null && accessMode !== null && accessMode !== "BLOCKED" &&
+    selected.market.acceptingOrders && !confirming && !submitting;
+  useShortcutAction((action) => {
+    if (!shortcutsLive || !selected) return;
+    if (action.kind === "buy" || action.kind === "sell") {
+      if (action.kind === "buy" && accessMode === "CLOSE-ONLY") return;
+      setTradeSide(action.kind === "buy" ? "BUY" : "SELL");
+      setFocusToken((n) => n + 1);
+    } else if (action.kind === "outcome" && action.index < selected.market.outcomes.length) {
+      onOutcomeChange(action.index);
+    }
+  });
+  // Focus after the render that applied the new side, so the right first field exists.
+  useEffect(() => {
+    if (focusToken === 0) return;
+    fieldsRef.current?.querySelector<HTMLInputElement>("input:not([disabled])")?.focus();
+  }, [focusToken]);
+
   const assetId = selected?.outcome.assetId ?? "";
   const book = useBook(assetId, refresh);
   const held = useHeld(assetId, configured && selected !== null, refresh);
@@ -165,7 +190,7 @@ export function TradeTicket({ selected, configured, initialSide, outcomeIndex, o
 
   if (!configured) {
     return (
-      <div className={styles.ticket} data-testid="ticket" data-state="not-configured">
+      <div className={`card ${styles.ticket}`} data-testid="ticket" data-state="not-configured">
         <strong>Trade ticket</strong>
         <div className={styles.notice}>
           Wallet not configured. Add your wallet settings to <code>.env.local</code> and restart the dev server (see the
@@ -176,7 +201,7 @@ export function TradeTicket({ selected, configured, initialSide, outcomeIndex, o
   }
   if (!selected) {
     return (
-      <div className={styles.ticket} data-testid="ticket" data-state="idle">
+      <div className={`card ${styles.ticket}`} data-testid="ticket" data-state="idle">
         <strong>Trade ticket</strong>
         <div className={styles.muted}>Select a market to trade.</div>
       </div>
@@ -298,17 +323,18 @@ export function TradeTicket({ selected, configured, initialSide, outcomeIndex, o
   ];
 
   return (
-    <div className={styles.ticket} data-testid="ticket" data-state={disabledAll ? "disabled" : "ready"}>
-      <strong>Trade ticket</strong>
-      <div className={styles.muted}>{market.title}</div>
+    <div className={`card ${styles.ticket}`} data-testid="ticket" data-state={disabledAll ? "disabled" : "ready"}>
+      <div className={styles.head}>
+        <strong>Trade ticket</strong>
+        <span className={styles.muted}>{market.title}</span>
+      </div>
 
-      <div className={styles.tabs} role="group" aria-label="Side">
+      <div className={`pill-tabs ${styles.seg}`} role="group" aria-label="Side">
         {(["BUY", "SELL"] as const).map((s) => (
           <button
             key={s}
             type="button"
             aria-pressed={side === s}
-            className={side === s ? styles.tabOn : styles.tabOff}
             disabled={mode === "CLOSE-ONLY" && s === "BUY"}
             onClick={() => setTradeSide(s)}
           >
@@ -316,16 +342,23 @@ export function TradeTicket({ selected, configured, initialSide, outcomeIndex, o
           </button>
         ))}
       </div>
-      <div className={styles.tabs} role="group" aria-label="Outcome">
+      <div className={styles.outcomes} role="group" aria-label="Outcome">
         {market.outcomes.map((o, i) => (
-          <button key={o.assetId} type="button" aria-pressed={i === outcomeIndex} className={i === outcomeIndex ? styles.tabOn : styles.tabOff} onClick={() => onOutcomeChange(i)}>
-            {o.label}
+          <button
+            key={o.assetId}
+            type="button"
+            aria-pressed={i === outcomeIndex}
+            className={`btn ${i === 0 ? "btn-yes" : "btn-no"} ${styles.outcomeBtn}`}
+            onClick={() => onOutcomeChange(i)}
+          >
+            <span>{o.label}</span>
+            <span className="num">{cents(o.price)}</span>
           </button>
         ))}
       </div>
-      <div className={styles.tabs} role="group" aria-label="Order type">
+      <div className={`pill-tabs ${styles.seg}`} role="group" aria-label="Order type">
         {(["LIMIT", "MARKET"] as const).map((k) => (
-          <button key={k} type="button" aria-pressed={kind === k} className={kind === k ? styles.tabOn : styles.tabOff} onClick={() => setKind(k)}>
+          <button key={k} type="button" aria-pressed={kind === k} onClick={() => setKind(k)}>
             {k === "LIMIT" ? "Limit" : "Market"}
           </button>
         ))}
@@ -337,11 +370,12 @@ export function TradeTicket({ selected, configured, initialSide, outcomeIndex, o
       {message ? <div className={styles.warn} role="status">{message}</div> : null}
       {!market.acceptingOrders ? <div className={styles.warn}>This market is not accepting orders.</div> : null}
 
-      <fieldset className={styles.fields} disabled={disabledAll}>
+      <fieldset ref={fieldsRef} className={styles.fields} disabled={disabledAll}>
         {kind === "LIMIT" ? (
           <label>
             Price (¢) <span className={styles.muted}>tick {tick === null ? "?" : `${formatDecimal(tick * HUNDRED)}¢`}</span>
             <input
+              className="input num"
               inputMode="decimal"
               value={priceText}
               onChange={(e) => setPriceText(e.target.value)}
@@ -353,15 +387,15 @@ export function TradeTicket({ selected, configured, initialSide, outcomeIndex, o
         {kind === "MARKET" && side === "BUY" ? (
           <label>
             Amount (pUSD)
-            <input inputMode="decimal" value={amountText} onChange={(e) => setAmountText(e.target.value)} placeholder="10" />
+            <input className="input num" inputMode="decimal" value={amountText} onChange={(e) => setAmountText(e.target.value)} placeholder="10" />
           </label>
         ) : (
           <label>
             Shares {market.minSize ? <span className={styles.muted}>min {market.minSize}</span> : null}
             <span className={styles.inline}>
-              <input inputMode="decimal" value={sizeText} onChange={(e) => setSizeText(e.target.value)} placeholder="5" />
+              <input className="input num" inputMode="decimal" value={sizeText} onChange={(e) => setSizeText(e.target.value)} placeholder="5" />
               {side === "SELL" ? (
-                <button type="button" className={styles.max} onClick={() => setSizeText(formatDecimal(floorToStep(heldUnits, CENT_STEP)))} disabled={heldUnits === 0n}>
+                <button type="button" className="btn" onClick={() => setSizeText(formatDecimal(floorToStep(heldUnits, CENT_STEP)))} disabled={heldUnits === 0n}>
                   Max
                 </button>
               ) : null}
@@ -372,14 +406,14 @@ export function TradeTicket({ selected, configured, initialSide, outcomeIndex, o
           <>
             <label>
               Expires
-              <select value={expiryChoice} onChange={(e) => setExpiryChoice(e.target.value as ExpiryChoice)} data-testid="expiry-select">
+              <select className="input" value={expiryChoice} onChange={(e) => setExpiryChoice(e.target.value as ExpiryChoice)} data-testid="expiry-select">
                 {EXPIRY_OPTIONS.map((o) => (
                   <option key={o.value} value={o.value}>{o.label}</option>
                 ))}
               </select>
             </label>
             {expiryChoice === "custom" ? (
-              <input type="datetime-local" aria-label="Custom expiry" value={customExpiry} onChange={(e) => setCustomExpiry(e.target.value)} />
+              <input className="input" type="datetime-local" aria-label="Custom expiry" value={customExpiry} onChange={(e) => setCustomExpiry(e.target.value)} />
             ) : null}
             <label className={styles.check}>
               <input type="checkbox" checked={postOnly} onChange={(e) => setPostOnly(e.target.checked)} />
@@ -391,18 +425,24 @@ export function TradeTicket({ selected, configured, initialSide, outcomeIndex, o
       </fieldset>
 
       <dl className={styles.summary}>
-        <div><dt>Held ({outcome.label})</dt><dd data-testid="held">{held.data === null ? (held.error ? "?" : "…") : fmtShares(held.data)}</dd></div>
-        <div><dt>Shares</dt><dd>{est ? `${kind === "MARKET" && side === "BUY" ? "~" : ""}${fmtShares(formatDecimal(est.shares))}` : "-"}</dd></div>
-        <div><dt>Avg price</dt><dd>{est?.avg ? centsOf(est.avg) : "-"}</dd></div>
-        <div><dt>{side === "BUY" ? "Est. cost" : "Est. proceeds"}</dt><dd>{est ? usd(est.total) : "-"}</dd></div>
-        {side === "BUY" ? <div><dt>Payout if {outcome.label} wins</dt><dd>{est ? usd(mulFloor(est.shares, ONE)) : "-"}</dd></div> : null}
+        <div><dt>Avg price</dt><dd className="num">{est?.avg ? centsOf(est.avg) : "-"}</dd></div>
+        <div><dt>Shares</dt><dd className="num">{est ? `${kind === "MARKET" && side === "BUY" ? "~" : ""}${fmtShares(formatDecimal(est.shares))}` : "-"}</dd></div>
+        <div><dt>{side === "BUY" ? "Est. cost" : "Est. proceeds"}</dt><dd className="num">{est ? usd(est.total) : "-"}</dd></div>
+        {side === "BUY" ? <div className={styles.payout}><dt>To win if {outcome.label} wins</dt><dd className="num">{est ? usd(mulFloor(est.shares, ONE)) : "-"}</dd></div> : null}
       </dl>
       {est && !est.complete && kind === "MARKET" ? <div className={styles.warn}>Order book is too thin to fill this in full.</div> : null}
       {request && check && !check.ok ? <div className={styles.bad} data-testid="ticket-error">{check.message}</div> : null}
 
-      <button type="button" className={styles.submit} disabled={!canSubmit} onClick={() => { setSubmitError(null); setConfirming(true); }}>
+      <button type="button" className={`btn ${side === "BUY" ? "btn-yes" : "btn-no"} ${styles.submit}`} disabled={!canSubmit} onClick={() => { setSubmitError(null); setConfirming(true); }}>
         Review {side === "BUY" ? "buy" : "sell"} order
       </button>
+
+      <div className={styles.position}>
+        <span className="lbl">Your position</span>
+        <dl className={styles.summary}>
+          <div><dt>Held ({outcome.label})</dt><dd className="num" data-testid="held">{held.data === null ? (held.error ? "?" : "…") : fmtShares(held.data)}</dd></div>
+        </dl>
+      </div>
 
       {placed ? (
         <div className={styles.placed} role="status" data-testid="placed">

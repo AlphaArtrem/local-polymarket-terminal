@@ -26,3 +26,9 @@ export function shortDate(iso: string | null | undefined): string {
     ? "-"
     : d.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric", timeZone: "UTC" });
 }
+
+/** "0.0765" -> 7.65 (percent, clamped 0-100) for probability bars. */
+export function pct(price: string | null | undefined): number {
+  const n = Number(price);
+  return Number.isFinite(n) ? Math.min(100, Math.max(0, n * 100)) : 0;
+}

@@ -71,7 +71,7 @@ export function PriceChart({ assetId, label }: { assetId: string; label: string 
     : `${label} price chart, ${LABELS[range]}: no data`;
 
   return (
-    <section className={styles.chart} aria-label={`${label} price history`}>
+    <section className={`card ${styles.chart}`} aria-label={`${label} price history`}>
       <div className={styles.header}>
         <div className={styles.price}>
           <span className={styles.title}>{label}</span>
@@ -82,9 +82,9 @@ export function PriceChart({ assetId, label }: { assetId: string; label: string 
             </>
           )}
         </div>
-        <div className={styles.ranges}>
+        <div className={`pill-tabs ${styles.ranges}`}>
           {HISTORY_RANGES.map((r) => (
-            <button key={r} type="button" aria-pressed={r === range} className={styles.range} onClick={() => { setRange(r); setHoverT(null); }}>
+            <button key={r} type="button" aria-pressed={r === range} onClick={() => { setRange(r); setHoverT(null); }}>
               {LABELS[r]}
             </button>
           ))}

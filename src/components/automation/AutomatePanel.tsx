@@ -89,7 +89,7 @@ export function AutomatePanel({ assetId, conditionId, label, eventSlug, currentP
   const unit = side === "BUY" ? "pUSD" : "shares";
   return (
     <span className={styles.wrap}>
-      <button type="button" className={styles.trigger} aria-expanded={open} onClick={() => setOpen((v) => !v)}>
+      <button type="button" className={`btn ${styles.trigger}`} aria-expanded={open} onClick={() => setOpen((v) => !v)}>
         ⚙ Automate
       </button>
       {open && (
@@ -100,7 +100,7 @@ export function AutomatePanel({ assetId, conditionId, label, eventSlug, currentP
             review();
           }}
         >
-          <div className={styles.tabs} role="group" aria-label="Rule type">
+          <div className={`pill-tabs ${styles.tabs}`} role="group" aria-label="Rule type">
             <button type="button" aria-pressed={mode === "tpsl"} onClick={() => setMode("tpsl")}>
               Take-profit / Stop-loss
             </button>
@@ -120,15 +120,15 @@ export function AutomatePanel({ assetId, conditionId, label, eventSlug, currentP
               <>
                 <label className={styles.field}>
                   Shares (max {formatSize(held)})
-                  <input inputMode="decimal" value={shares} onChange={(e) => setShares(e.target.value)} />
+                  <input className="input num" inputMode="decimal" value={shares} onChange={(e) => setShares(e.target.value)} />
                 </label>
                 <label className={styles.field}>
                   Take-profit ¢
-                  <input inputMode="decimal" value={tp} onChange={(e) => setTp(e.target.value)} placeholder="optional" />
+                  <input className="input num" inputMode="decimal" value={tp} onChange={(e) => setTp(e.target.value)} placeholder="optional" />
                 </label>
                 <label className={styles.field}>
                   Stop-loss ¢
-                  <input inputMode="decimal" value={sl} onChange={(e) => setSl(e.target.value)} placeholder="optional" />
+                  <input className="input num" inputMode="decimal" value={sl} onChange={(e) => setSl(e.target.value)} placeholder="optional" />
                 </label>
                 {currentPrice !== null && <div className={styles.hint}>Midpoint now {toCents(currentPrice)}¢</div>}
               </>
@@ -137,26 +137,26 @@ export function AutomatePanel({ assetId, conditionId, label, eventSlug, currentP
             <>
               <label className={styles.field}>
                 Side
-                <select value={side} onChange={(e) => setSide(e.target.value === "SELL" ? "SELL" : "BUY")}>
+                <select className="input" value={side} onChange={(e) => setSide(e.target.value === "SELL" ? "SELL" : "BUY")}>
                   <option value="BUY">Buy</option>
                   <option value="SELL">Sell</option>
                 </select>
               </label>
               <label className={styles.field}>
                 Total ({unit})
-                <input inputMode="decimal" value={total} onChange={(e) => setTotal(e.target.value)} />
+                <input className="input num" inputMode="decimal" value={total} onChange={(e) => setTotal(e.target.value)} />
               </label>
               <label className={styles.field}>
                 Slices ({MIN_SLICES}–{MAX_SLICES})
-                <input inputMode="numeric" value={slices} onChange={(e) => setSlices(e.target.value)} />
+                <input className="input num" inputMode="numeric" value={slices} onChange={(e) => setSlices(e.target.value)} />
               </label>
               <label className={styles.field}>
                 Interval, minutes ({MIN_INTERVAL_MIN}–{MAX_INTERVAL_MIN})
-                <input inputMode="numeric" value={intervalMin} onChange={(e) => setIntervalMin(e.target.value)} />
+                <input className="input num" inputMode="numeric" value={intervalMin} onChange={(e) => setIntervalMin(e.target.value)} />
               </label>
               <label className={styles.field}>
                 Price limit ¢
-                <input inputMode="decimal" value={limit} onChange={(e) => setLimit(e.target.value)} placeholder="optional" />
+                <input className="input num" inputMode="decimal" value={limit} onChange={(e) => setLimit(e.target.value)} placeholder="optional" />
               </label>
               {preview && (
                 <div className={styles.preview}>
@@ -173,10 +173,10 @@ export function AutomatePanel({ assetId, conditionId, label, eventSlug, currentP
             </div>
           )}
           <div className={styles.row}>
-            <button type="submit" disabled={mode === "tpsl" && held === null}>
+            <button type="submit" className="btn btn-primary" disabled={mode === "tpsl" && held === null}>
               Review
             </button>
-            <button type="button" onClick={() => setOpen(false)}>
+            <button type="button" className="btn btn-ghost" onClick={() => setOpen(false)}>
               Close
             </button>
           </div>

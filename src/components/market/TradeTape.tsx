@@ -12,29 +12,31 @@ function clock(t: number): string {
 /** Recent public trades for one asset; shares the asset's single live connection with OrderBook. */
 export function TradeTape({ assetId }: { assetId: string }) {
   const { trades } = useLiveBook(assetId);
-  if (trades.length === 0) return <div className={market.muted}>No trades yet</div>;
   return (
-    <div className={styles.tape} data-testid="trade-tape">
-      <table className={market.table}>
-        <thead>
-          <tr>
-            <th>Time</th>
-            <th>Side</th>
-            <th className={market.num}>Price</th>
-            <th className={market.num}>Shares</th>
-          </tr>
-        </thead>
-        <tbody>
+    <section className={`card ${styles.tapeWrap}`} aria-label="Trades">
+      <div className={market.panelHead}>
+        <span className="lbl">Trades</span>
+      </div>
+      {trades.length === 0 ? (
+        <div className={styles.empty}>No trades yet</div>
+      ) : (
+        <div className={styles.tape} data-testid="trade-tape" role="table" aria-label="Recent trades">
+          <div role="row" className={`${styles.row} ${styles.head}`}>
+            <span role="columnheader">Time</span>
+            <span role="columnheader">Side</span>
+            <span role="columnheader">Price</span>
+            <span role="columnheader">Shares</span>
+          </div>
           {trades.map((tr, i) => (
-            <tr key={`${tr.t}-${tr.price}-${i}`} className={tr.side === "BUY" ? styles.buy : styles.sell}>
-              <td>{clock(tr.t)}</td>
-              <td>{tr.side}</td>
-              <td className={market.num}>{cents(tr.price)}</td>
-              <td className={market.num}>{tr.size ? shares(tr.size) : "-"}</td>
-            </tr>
+            <div key={`${tr.t}-${tr.price}-${i}`} role="row" className={`${styles.row} ${tr.side === "BUY" ? styles.buy : styles.sell}`}>
+              <span role="cell">{clock(tr.t)}</span>
+              <span role="cell">{tr.side}</span>
+              <span role="cell">{cents(tr.price)}</span>
+              <span role="cell">{tr.size ? shares(tr.size) : "-"}</span>
+            </div>
           ))}
-        </tbody>
-      </table>
-    </div>
+        </div>
+      )}
+    </section>
   );
 }

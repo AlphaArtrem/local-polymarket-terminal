@@ -29,7 +29,7 @@ export function CancelOrderButton({ orderId }: { orderId: string }) {
   if (state.kind === "done") return <span className={styles.state}>Canceled</span>;
   return (
     <>
-      <button type="button" className={styles.button} onClick={cancel} disabled={state.kind === "busy"}>
+      <button type="button" className={`btn btn-no ${styles.sm}`} onClick={cancel} disabled={state.kind === "busy"}>
         {state.kind === "busy" ? "Canceling…" : "Cancel"}
       </button>
       {state.kind === "error" ? <span className={styles.error}> {state.message}</span> : null}

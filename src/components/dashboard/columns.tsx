@@ -42,7 +42,9 @@ export const positionColumns: Column<PositionDto>[] = [
       p.redeemable ? (
         <RedeemButton position={p} />
       ) : p.eventSlug ? (
-        <Link href={marketHref(p.eventSlug, `?asset=${encodeURIComponent(p.assetId)}&side=SELL`)}>Close</Link>
+        <Link className={`btn ${styles.sm}`} href={marketHref(p.eventSlug, `?asset=${encodeURIComponent(p.assetId)}&side=SELL`)}>
+          Close
+        </Link>
       ) : null,
   },
 ];

@@ -51,7 +51,7 @@ export function RedeemButton({ position, onDone }: { position: PositionDto; onDo
   }
   return (
     <>
-      <button type="button" className={styles.button} onClick={() => setConfirming(true)} disabled={busy}>
+      <button type="button" className={`btn btn-yes ${styles.sm}`} onClick={() => setConfirming(true)} disabled={busy}>
         Redeem
       </button>
       {confirming ? (

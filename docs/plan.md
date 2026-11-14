@@ -2,7 +2,7 @@
 
 A local Polymarket trading terminal: a website-like UI on `127.0.0.1` that talks to Polymarket's
 public APIs with the user's own wallet. All phases are built; [state.md](state.md) says what
-exists. **Phases 0–8 are done; no further phase is planned.**
+exists. **Phases 0–9 are done; no further phase is planned.**
 
 Each phase ends in a **demonstration**, not just green tests. Slices are sized for one
 implementer agent each, with explicit file ownership so parallel slices never touch the same file.
@@ -440,6 +440,39 @@ from the price, engine paused).
 
 ---
 
+## Phase 9 — Redesign, watchlist, shortcuts, CSV export, deposit (done 2026-11-14)
+
+**Goal:** a modern trading-terminal look (dark graphite surfaces, mint Yes, coral No, Inter for
+text and JetBrains Mono for numbers, both from local font stacks with no network fonts) and four
+features from the design mockup.
+
+**Redesign slices (R1 first, then R2–R4 in parallel):** R1 tokens, shared classes and header
+(`globals.css`, `Header.tsx`, `NavLink`, `HeaderAccount`); R2 trade page (three-column workspace,
+depth-bar book, segmented ticket); R3 browse (featured card, card grid); R4 portfolio, alerts and
+automation pages (KPI tiles, tabbed tables).
+
+**Feature slices (parallel, exclusive file ownership):**
+
+- **W — Watchlist.** Stars on browse cards and the market strip; a Watchlist card in the browse
+  rail with live midpoints and the change since starred. Browser-only (`pmterm.watchlist.v1`,
+  cap 50, one `/api/prices` call every 15 s while visible).
+- **K — Shortcuts.** ⌘K/Ctrl+K and `/` focus search, `g` then `b`/`p`/`a` navigate, `b`/`s`/`y`/`n`
+  set the ticket and focus its first field, `?` opens help with a switch for single-key shortcuts
+  (`pmterm.shortcuts.v1`). No shortcut submits, reviews or confirms anything, and single keys do
+  nothing while any dialog is open.
+- **E — Export.** "Export CSV" on each Portfolio tab walks every page of the existing GET routes
+  (cap 2,000 rows) and downloads a CSV with formula-injection escaping.
+- **D — Deposit.** `POST /api/deposit` asks Polymarket's bridge (F29, F30) for the account
+  wallet's deposit addresses and shows the EVM one with Polygon USDC/USDC.e instructions and the
+  live minimum. Never shows the signer or the account wallet as a target; no address on failure.
+  The app sends no funds. No QR code (it would need a new dependency).
+
+**Accept:** stars persist across reloads and prices update; shortcuts work and `s`/`n` change
+nothing under an open confirm dialog; each export opens in a spreadsheet without formulas;
+Deposit shows a checksummed bridge address that differs from both the wallet and the signer.
+
+---
+
 ## Later phases
 
-None planned. Candidates: trailing stops, order book depth chart, multi-account.
+None planned. Candidates: trailing stops, order book depth chart, multi-account, a deposit QR code.

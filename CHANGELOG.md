@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Phase 9 redesign: a dark trading-terminal look (graphite surfaces, mint Yes, coral No, Inter and JetBrains Mono from local font stacks), a new header with active nav, ⌘K hint, access chip, cash and wallet chips; three-column trade page (outcome rail with probability bars, chart, depth-bar order book, segmented ticket); browse with a featured event and card grid; portfolio with KPI tiles and tabs; restyled alerts and automation pages. The event page now opens on its top outcome.
+- Watchlist: star events and outcomes; a Browse sidebar card shows live prices and the change since starred (browser-only).
+- Keyboard shortcuts: ⌘K//, g-chords, b/s/y/n on the ticket, ? help with an on/off switch. Shortcuts never place or confirm orders and do nothing while a dialog is open.
+- Export CSV on every Portfolio tab (all pages, up to 2,000 rows, formula-injection safe).
+- Deposit dialog (`POST /api/deposit`): shows the account wallet's Polymarket bridge address for USDC/USDC.e on Polygon with the live minimum; the app never sends funds. The balance tile no longer shows the account wallet's full address.
 - Phase 8: limit orders can expire (GTD: 1 hour, 1 day, 1 week or a custom time) and be post-only; Open orders shows an Expires column. App-run take-profit/stop-loss and TWAP rules (off unless `AUTOMATION_ENABLED=true`; `AUTOMATION_FILE`): an Automate panel on the event page, an `/automation` page with pause/resume and cancel, and a header link. Rules place market orders through the same server checks, only while the app runs, and every restart begins paused.
 - Fix: the ticket's post-only and price checks now pick the best bid/ask by value (book levels arrive worst-first).
 - Project docs: phased plan, state tracker, external facts (verified 2026-11-13), hazards, agent

@@ -1,0 +1,45 @@
+.header {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px;
+  padding: 10px 20px; background: #0e1216; border-bottom: 1px solid #1a2027;
+}
+.brand { display: flex; align-items: center; gap: 10px; color: var(--text); font-weight: 700; letter-spacing: 0.02em; }
+.brand:hover { text-decoration: none; }
+.nav { display: flex; flex-wrap: wrap; gap: 4px; }
+.nav a { color: var(--muted); border-radius: 7px; padding: 7px 12px; font-weight: 600; }
+.nav a:hover { color: var(--text); background: var(--surface-2); text-decoration: none; }
+.nav a[aria-current="page"] { color: var(--text); background: var(--surface-2); }
+
+.search {
+  flex: 1 1 280px; max-width: 520px; min-width: 0;
+  display: flex; align-items: center; gap: 10px;
+  min-height: 38px; padding: 0 12px;
+  background: var(--surface-1); border: 1px solid var(--border); border-radius: 9px;
+}
+.search:focus-within { border-color: var(--accent); }
+.searchIcon { flex: none; color: var(--muted); }
+.searchBox { flex: 1; min-width: 0; }
+/* SearchBar owns its markup; restyle its field from here (element selectors outrank its single class). */
+.searchBox input { width: 100%; max-width: none; padding: 0; background: transparent; border: 0; outline: 0; color: var(--text); border-radius: 0; }
+.searchBox input::placeholder { color: var(--faint); }
+.kbd {
+  flex: none; padding: 1px 5px; font: 500 11px var(--font-num);
+  color: var(--muted); border: 1px solid var(--border-strong); border-radius: 4px;
+}
+
+.helpBtn {
+  width: 28px; height: 28px; border-radius: 7px; font: 600 13px var(--font-num);
+  color: var(--muted); background: transparent; border: 1px solid var(--border-strong); cursor: pointer;
+}
+.helpBtn:hover { color: var(--text); background: var(--surface-2); }
+
+.right { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-left: auto; }
+.cash { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.2; }
+.cashLabel { font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.cashValue { font-weight: 600; }
+
+@media (max-width: 640px) {
+  .header { padding: 8px 12px; gap: 8px 12px; }
+  .search { order: 5; flex-basis: 100%; max-width: none; }
+  .kbd { display: none; }
+  .nav a { padding: 6px 9px; }
+}

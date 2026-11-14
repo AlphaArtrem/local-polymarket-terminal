@@ -34,7 +34,7 @@ export function RedeemBanner({ refreshToken, onRedeemed }: { refreshToken: numbe
           {markets.length} resolved {markets.length === 1 ? "position" : "positions"} worth {formatUsd(total)} can be claimed
         </strong>
       </p>
-      <ul>
+      <ul className={styles.noticeList}>
         {markets.map(({ first, value }) => (
           <li key={first.conditionId}>
             {first.title ?? first.conditionId} · {formatUsd(value)}{" "}

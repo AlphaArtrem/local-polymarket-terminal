@@ -1,34 +1,35 @@
-.summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px; margin-bottom: 12px; }
-.card { background: var(--panel); border: 1px solid var(--border); border-radius: 3px; padding: 8px 12px; }
-.cardLabel { color: var(--muted); font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; }
-.cardValue { font-size: 20px; margin-top: 2px; font-variant-numeric: tabular-nums; }
+.page { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s-4); }
+.head { display: flex; align-items: baseline; gap: var(--s-3); flex-wrap: wrap; }
+.title { margin: 0; font-size: 20px; font-weight: 600; }
+
+.summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: var(--s-3); }
+.card { padding: var(--s-3) var(--s-4); min-width: 0; }
+.cardValue { font-family: var(--font-num); font-variant-numeric: tabular-nums; font-size: 22px; font-weight: 600; margin-top: 4px; overflow-wrap: anywhere; }
 .cardSub { color: var(--muted); font-size: 11px; margin-top: 2px; overflow-wrap: anywhere; }
+.cardLink { display: block; color: inherit; }
+.cardLink:hover { text-decoration: none; border-color: var(--border-strong); }
 
-.toolbar { display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--border); margin-bottom: 8px; }
-.tabs { display: flex; gap: 2px; flex: 1; flex-wrap: wrap; }
-.tab { background: none; border: 0; border-bottom: 2px solid transparent; color: var(--muted); font: inherit; padding: 6px 12px; cursor: pointer; }
-.tab:hover { color: var(--text); }
-.tabActive { color: var(--text); border-bottom-color: var(--accent); }
-.button { background: var(--panel); border: 1px solid var(--border); border-radius: 3px; color: var(--text); font: inherit; padding: 3px 10px; cursor: pointer; }
-.button:hover:not(:disabled) { border-color: var(--accent); }
-.button:disabled { color: var(--muted); cursor: default; }
+.toolbar { display: flex; align-items: center; justify-content: space-between; gap: var(--s-2); flex-wrap: wrap; }
+.tabs { max-width: 100%; overflow-x: auto; }
+.actions { display: flex; align-items: center; gap: var(--s-2); flex-wrap: wrap; }
 
-.tableWrap { overflow-x: auto; }
-.table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
-.table th { text-align: left; color: var(--muted); font-weight: 400; font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; padding: 4px 8px; border-bottom: 1px solid var(--border); white-space: nowrap; }
-.table td { padding: 3px 8px; border-bottom: 1px solid var(--border); white-space: nowrap; }
-.table tr:hover td { background: var(--panel); }
-.num { text-align: right !important; }
-.titleCell { white-space: normal !important; max-width: 420px; }
+.panel { padding: 0; overflow: hidden; }
+.tableWrap { overflow-x: auto; max-width: 100%; }
+.titleCell { white-space: normal !important; min-width: 200px; max-width: 420px; }
+.more { padding: var(--s-2) var(--s-3); display: flex; align-items: center; gap: var(--s-2); }
 
-.pos { color: var(--ok); }
-.neg { color: var(--bad); }
+/* Small action buttons inside tables / toolbars (combined with the global .btn). */
+:global(.btn).sm { min-height: 26px; padding: 0 10px; font-size: 12px; }
+
+.pos { color: var(--pos); }
+.neg { color: var(--neg); }
 .flat { color: var(--text); }
 
-.state { color: var(--muted); padding: 24px 8px; }
-.error { color: var(--bad); padding: 12px 8px; }
-.more { margin-top: 8px; }
-.notice { background: var(--panel); border: 1px solid var(--warn); border-radius: 3px; padding: 12px 16px; max-width: 640px; }
+.state { color: var(--muted); padding: var(--s-5) var(--s-3); }
+.error { color: var(--c-coral-text); padding: var(--s-3); }
+.notice { background: var(--warn-bg); border: 1px solid var(--warn-border); border-radius: var(--r-md); padding: var(--s-3) var(--s-4); max-width: 640px; }
 .notice code { color: var(--warn); }
 .notice p { margin: 6px 0; }
-.noticeSpaced { max-width: none; margin-bottom: 12px; }
+.noticeSpaced { max-width: none; }
+.noticeList { margin: 6px 0 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+.exportError { color: var(--c-coral-text); font-size: 12px; }

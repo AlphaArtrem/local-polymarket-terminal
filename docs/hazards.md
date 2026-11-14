@@ -132,3 +132,23 @@ trigger on two consecutive checks; every order goes through `placeOrder` (mode, 
 slippage checks); a rule is saved as "firing" before the SDK call and an interrupted rule is
 never re-fired; every restart begins paused until the user resumes; refusals stop the rule and
 three failures in a row pause the engine. Nothing fires while the server is stopped.
+
+## H14 — Deposit sent to the wrong address or network (Prediction)
+
+Funds sent to the signer key's address, or plain USDC sent straight to the account wallet, are not
+credited as pUSD; a wrong network or token needs recovery.polymarket.com. **Guard:** the Deposit
+dialog shows only the bridge EVM address (checksummed, grouped), says Polygon USDC/USDC.e only,
+shows the live minimum, and shows no address at all when the bridge call fails. The server refuses
+(409) when the configured wallet and signer look misconfigured.
+
+## H15 — A shortcut changes the order under a confirm dialog (Prediction)
+
+If `s` or `n` changed the ticket while its confirm dialog was open, Confirm would send a different
+order from the one shown. **Guard:** single-key shortcuts are ignored while any `dialog[open]`
+exists and while the ticket is confirming or submitting; no shortcut maps Enter or Space or clicks
+anything (tests/shortcuts.test.ts).
+
+## H16 — CSV formula injection (Prediction)
+
+Market titles are third-party text; a cell starting with `=`, `+`, `-` or `@` can run as a formula
+in a spreadsheet. **Guard:** `src/lib/csv.ts` prefixes `'` on such cells, except plain numbers.

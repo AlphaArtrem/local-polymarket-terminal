@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { AlertsRunner } from "@/components/alerts/AlertsRunner";
+import { ShortcutsProvider } from "@/components/shortcuts/ShortcutsProvider";
 import { Header } from "@/components/Header";
 import "./globals.css";
 
@@ -11,7 +12,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <Header />
         <AlertsRunner />
-        <main className="main">{children}</main>
+        <ShortcutsProvider />
+        <main className="main" data-slot="main">{children}</main>
       </body>
     </html>
   );

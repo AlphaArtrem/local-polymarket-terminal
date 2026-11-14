@@ -33,12 +33,13 @@ export function DataPanel<T>({ endpoint, columns, rowKey, empty, refreshToken }:
   return (
     <div>
       {error ? <div className={styles.error}>Error: {error.message}</div> : null}
+      <div className={`card ${styles.panel}`}>
       <div className={styles.tableWrap}>
-        <table className={styles.table}>
+        <table className="table-dense">
           <thead>
             <tr>
               {columns.map((c, i) => (
-                <th key={i} className={c.numeric ? styles.num : undefined}>
+                <th key={i} className={c.numeric ? "num" : undefined}>
                   {c.header}
                 </th>
               ))}
@@ -51,7 +52,7 @@ export function DataPanel<T>({ endpoint, columns, rowKey, empty, refreshToken }:
                   <td
                     key={i}
                     data-slot={c.slot}
-                    className={[c.numeric ? styles.num : "", c.wrap ? styles.titleCell : ""].join(" ").trim() || undefined}
+                    className={[c.numeric ? "num" : "", c.wrap ? styles.titleCell : ""].join(" ").trim() || undefined}
                   >
                     {c.render(row)}
                   </td>
@@ -61,10 +62,13 @@ export function DataPanel<T>({ endpoint, columns, rowKey, empty, refreshToken }:
           </tbody>
         </table>
       </div>
+      </div>
       {hasMore ? (
-        <button type="button" className={`${styles.button} ${styles.more}`} onClick={loadMore} disabled={loadingMore}>
-          {loadingMore ? "Loading…" : "Load more"}
-        </button>
+        <div className={styles.more}>
+          <button type="button" className={`btn ${styles.sm}`} onClick={loadMore} disabled={loadingMore}>
+            {loadingMore ? "Loading…" : "Load more"}
+          </button>
+        </div>
       ) : null}
     </div>
   );
