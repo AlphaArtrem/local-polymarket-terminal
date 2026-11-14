@@ -1,8 +1,8 @@
 # Plan
 
 A local Polymarket trading terminal: a website-like UI on `127.0.0.1` that talks to Polymarket's
-public APIs with the user's own wallet. Phases 0–3 are built; [state.md](state.md) says what
-exists. **Phases 0–7 are done; next is Phase 8 (advanced order types).**
+public APIs with the user's own wallet. All phases are built; [state.md](state.md) says what
+exists. **Phases 0–8 are done; no further phase is planned.**
 
 Each phase ends in a **demonstration**, not just green tests. Slices are sized for one
 implementer agent each, with explicit file ownership so parallel slices never touch the same file.
@@ -387,8 +387,59 @@ cancelled by agents or by the main session — the user runs any live cancel/red
 
 ---
 
-## Later phases (not v1)
+## Phase 8 — GTD expiry, post-only, app-run TP/SL and TWAP (slices L, M, N, parallel) — done 2026-11-14
 
-| Phase | Scope |
-| - | - |
-| 8 | Order types beyond v1: GTD expiry, TWAP, take-profit/stop-loss (`placePositionTpSl`). |
+**Goal:** limit orders that expire at a set time or refuse to cross the book, and take-profit /
+stop-loss and TWAP orders that this app executes for you while it runs.
+
+SDK facts checked 2026-11-14 (external-facts F28): `placeLimitOrder` takes `expiration` (Unix
+seconds, ≥ 3 min ahead → GTD) and `postOnly`. TP/SL and TWAP exist only for perps, so the local
+server runs them itself — user decision 2026-11-14 ("app-run, while open"), hazard H13.
+
+Contract: `src/lib/phase8-types.ts` (main session).
+
+### Slice L — GTD + post-only (implementer)
+
+Owner of: `src/server/orders/{body,validate,place}.ts`, `TradeTicket.tsx`, `mapOrder`,
+`OrderDto`, `orderColumns`, matching tests. Expiry 5 min–365 days ahead, LIMIT only; post-only
+rejected server-side when it would cross; ticket gets an Expires select and Post only checkbox;
+Open orders gets an Expires column.
+
+### Slice M — automation engine (implementer)
+
+Owner of: `src/lib/automation.ts`, `src/server/automation/*`, `src/app/api/automation/**`, the
+`AUTOMATION_ENABLED` / `AUTOMATION_FILE` env vars, `tests/automation*.test.ts`.
+
+- Off unless `AUTOMATION_ENABLED=true`. Rules persist in `.data/automation.json` (gitignored,
+  atomic writes; a corrupt file stops the engine instead of being overwritten).
+- 5 s tick on midpoints. TP/SL needs the trigger on two consecutive checks, then sells
+  min(size, held) at market. TWAP places one market slice per interval, skipping slices outside
+  the optional price limit.
+- Every order goes through `placeOrder`. A rule is saved as `firing` before the SDK call; an
+  interrupted rule becomes `error` and is never re-fired. Refusals stop the rule; three thrown
+  errors stop it; three failed firings in a row pause the engine. Every server start begins
+  paused while rules are armed.
+
+### Slice N — automation UI (implementer)
+
+Owner of: `src/components/automation/**`, `src/app/automation/page.tsx`, `tests/automation-ui*`.
+`AutomatePanel` on the event page (TP/SL for held outcomes, TWAP), `/automation` page (rules,
+executions, pause/resume, cancel), `AutomationNavLink`. Confirm dialogs state exactly what will be
+sold or bought without asking again.
+
+### Main session
+
+Wire the panel into `MarketView` and the nav link into the header; full check; browser
+acceptance; docs.
+
+**Accept:** a GTD/post-only limit order shows its expiry in the ticket confirm (the user places
+any live one); with automation disabled the UI explains how to enable it; with it enabled, a
+TP/SL rule and a TWAP rule can be created, show on `/automation`, survive a restart as paused,
+and can be cancelled — no rule is allowed to fire by agents or the main session (triggers set far
+from the price, engine paused).
+
+---
+
+## Later phases
+
+None planned. Candidates: trailing stops, order book depth chart, multi-account.

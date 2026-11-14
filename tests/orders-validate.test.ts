@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
+import { MAX_EXPIRY_SECONDS, MIN_EXPIRY_SECONDS } from "@/lib/phase8-types";
 import { validateOrder, type MarketContext, type OrderRequest, type ValidationContext } from "@/server/orders/validate";
 
 const CONDITION = "0xa82699004214aa3f755ede5d9e6d5c4850e3f69ec821a3b15433a1bd6a3a19aa";
 const YES = "111";
 const NO = "222";
+const NOW = 1_800_000_000;
 
 function ctx(over: Partial<Omit<ValidationContext, "market">> & { market?: Partial<MarketContext> } = {}): ValidationContext {
   const { market, ...rest } = over;
@@ -21,6 +23,7 @@ function ctx(over: Partial<Omit<ValidationContext, "market">> & { market?: Parti
     maxOrderUsdc: 25,
     bestBid: "0.012",
     bestAsk: "0.014",
+    nowSec: NOW,
     ...rest,
   };
 }
@@ -42,7 +45,7 @@ describe("limit orders", () => {
     const r = validateOrder(limit({ price: "0.0130", size: "5.00" }), ctx());
     expect(r).toEqual({
       ok: true,
-      order: { kind: "LIMIT", assetId: YES, side: "BUY", price: "0.013", size: "5", cost: "0.065" },
+      order: { kind: "LIMIT", assetId: YES, side: "BUY", price: "0.013", size: "5", cost: "0.065", expiresAt: null, postOnly: false },
     });
   });
 
@@ -180,5 +183,66 @@ describe("trading mode (H3)", () => {
   });
   it("OPEN allows buys", () => {
     expect(codeOf(validateOrder(limit(), ctx({ mode: "OPEN" })))).toBe("OK");
+  });
+});
+
+describe("GTD expiry", () => {
+  it("accepts the exact minimum and maximum and returns expiresAt", () => {
+    const min = NOW + MIN_EXPIRY_SECONDS;
+    const max = NOW + MAX_EXPIRY_SECONDS;
+    expect(validateOrder(limit({ expiresAt: min }), ctx())).toMatchObject({ ok: true, order: { expiresAt: min } });
+    expect(codeOf(validateOrder(limit({ expiresAt: max }), ctx()))).toBe("OK");
+  });
+
+  it("rejects one second under the minimum and one over the maximum", () => {
+    expect(codeOf(validateOrder(limit({ expiresAt: NOW + MIN_EXPIRY_SECONDS - 1 }), ctx()))).toBe("INVALID_EXPIRY");
+    expect(codeOf(validateOrder(limit({ expiresAt: NOW + MAX_EXPIRY_SECONDS + 1 }), ctx()))).toBe("INVALID_EXPIRY");
+    expect(codeOf(validateOrder(limit({ expiresAt: NOW - 10 }), ctx()))).toBe("INVALID_EXPIRY");
+  });
+
+  it("rejects a non-integer expiry", () => {
+    expect(codeOf(validateOrder(limit({ expiresAt: NOW + 1000.5 }), ctx()))).toBe("INVALID_EXPIRY");
+  });
+
+  it("without expiresAt the order is GTC (null)", () => {
+    expect(validateOrder(limit(), ctx())).toMatchObject({ order: { expiresAt: null, postOnly: false } });
+  });
+
+  it("is only allowed for LIMIT orders", () => {
+    expect(codeOf(validateOrder(marketBuy({ expiresAt: NOW + 3600 }), ctx()))).toBe("UNEXPECTED_FIELD");
+    expect(codeOf(validateOrder(marketSell({ expiresAt: NOW + 3600 }), ctx({ heldSize: "8" })))).toBe("UNEXPECTED_FIELD");
+  });
+});
+
+describe("post only", () => {
+  it("is only allowed for LIMIT orders, even when false", () => {
+    expect(codeOf(validateOrder(marketBuy({ postOnly: true }), ctx()))).toBe("UNEXPECTED_FIELD");
+    expect(codeOf(validateOrder(marketBuy({ postOnly: false }), ctx()))).toBe("UNEXPECTED_FIELD");
+    expect(codeOf(validateOrder(marketSell({ postOnly: true }), ctx({ heldSize: "8" })))).toBe("UNEXPECTED_FIELD");
+  });
+
+  it("accepts a BUY below the best ask and reports postOnly true", () => {
+    expect(validateOrder(limit({ postOnly: true, price: "0.013" }), ctx())).toMatchObject({ ok: true, order: { postOnly: true } });
+  });
+
+  it("rejects a BUY at or above the best ask", () => {
+    expect(codeOf(validateOrder(limit({ postOnly: true, price: "0.014" }), ctx()))).toBe("POST_ONLY_WOULD_CROSS");
+    expect(codeOf(validateOrder(limit({ postOnly: true, price: "0.015" }), ctx()))).toBe("POST_ONLY_WOULD_CROSS");
+  });
+
+  it("rejects a SELL at or below the best bid and accepts above it", () => {
+    const held = ctx({ heldSize: "8" });
+    expect(codeOf(validateOrder(limit({ side: "SELL", postOnly: true, price: "0.012" }), held))).toBe("POST_ONLY_WOULD_CROSS");
+    expect(codeOf(validateOrder(limit({ side: "SELL", postOnly: true, price: "0.011" }), held))).toBe("POST_ONLY_WOULD_CROSS");
+    expect(codeOf(validateOrder(limit({ side: "SELL", postOnly: true, price: "0.013" }), held))).toBe("OK");
+  });
+
+  it("cannot cross an empty side of the book", () => {
+    expect(codeOf(validateOrder(limit({ postOnly: true, price: "0.5" }), ctx({ bestAsk: null })))).toBe("OK");
+    expect(codeOf(validateOrder(limit({ side: "SELL", postOnly: true, price: "0.001" }), ctx({ heldSize: "8", bestBid: null })))).toBe("OK");
+  });
+
+  it("does not check the book when postOnly is off", () => {
+    expect(codeOf(validateOrder(limit({ price: "0.02" }), ctx()))).toBe("OK");
   });
 });

@@ -15,6 +15,7 @@ import { estimateBuy, estimateSell, type Fill } from "@/lib/estimate";
 import { tradingMode, type TradingMode } from "@/lib/jurisdiction";
 import type { SelectedOutcome } from "@/lib/market";
 import { validateOrder, type OrderRequest } from "@/server/orders/validate";
+import { formatTime } from "@/lib/format";
 import { cents, shares as fmtShares } from "./fmt";
 import styles from "./ticket.module.css";
 import { useAccess, useBook, useHeld } from "./useTicketData";
@@ -46,6 +47,44 @@ function snapCents(text: string, tick: bigint | null): bigint | null {
   const typed = parseDecimal(text.trim());
   if (typed === null || tick === null) return null;
   return snapToStep(typed / HUNDRED, tick);
+}
+
+type ExpiryChoice = "never" | "1h" | "1d" | "1w" | "custom";
+const EXPIRY_OPTIONS: { value: ExpiryChoice; label: string; seconds?: number }[] = [
+  { value: "never", label: "Never (GTC)" },
+  { value: "1h", label: "1 hour", seconds: 3_600 },
+  { value: "1d", label: "1 day", seconds: 86_400 },
+  { value: "1w", label: "1 week", seconds: 604_800 },
+  { value: "custom", label: "Custom" },
+];
+const CLOCK_TICK_MS = 15_000;
+
+/** Unix seconds for the chosen expiry, or undefined for GTC / an unparseable custom date. */
+function resolveExpiry(choice: ExpiryChoice, customText: string, nowSec: number): number | undefined {
+  if (choice === "never") return undefined;
+  if (choice === "custom") {
+    const ms = customText ? new Date(customText).getTime() : NaN; // datetime-local is local time
+    return Number.isNaN(ms) ? undefined : Math.floor(ms / 1000);
+  }
+  const seconds = EXPIRY_OPTIONS.find((o) => o.value === choice)?.seconds;
+  return seconds === undefined ? undefined : nowSec + seconds;
+}
+
+/** Re-measures preset expiries from the moment of submit; custom dates are absolute and unchanged. */
+function withFreshExpiry(base: OrderRequest, choice: ExpiryChoice, customText: string): OrderRequest {
+  if (base.type !== "LIMIT" || base.expiresAt === undefined) return base;
+  const fresh = resolveExpiry(choice, customText, Math.floor(Date.now() / 1000));
+  return fresh === undefined ? base : { ...base, expiresAt: fresh };
+}
+
+/** Best price by value: the book levels are not guaranteed sorted. */
+function bestOf(levels: { price: string }[] | undefined, pick: "max" | "min"): string | null {
+  let best: bigint | null = null;
+  for (const { price } of levels ?? []) {
+    const v = parseDecimal(price);
+    if (v !== null && (best === null || (pick === "max" ? v > best : v < best))) best = v;
+  }
+  return best === null ? null : formatDecimal(best);
 }
 
 function modeMessage(mode: TradingMode, country: string | undefined): string | null {
@@ -81,6 +120,15 @@ export function TradeTicket({ selected, configured, initialSide, outcomeIndex, o
   const [placed, setPlaced] = useState<Placed | null>(null);
   const [settlingId, setSettlingId] = useState<string | null>(null);
   const [refresh, setRefresh] = useState(0);
+  const [expiryChoice, setExpiryChoice] = useState<ExpiryChoice>("never");
+  const [customExpiry, setCustomExpiry] = useState("");
+  const [postOnly, setPostOnly] = useState(false);
+  // Clock for the pre-check and the preview; kept in state so render stays pure.
+  const [nowMs, setNowMs] = useState(() => Date.now());
+  useEffect(() => {
+    const timer = setInterval(() => setNowMs(Date.now()), CLOCK_TICK_MS);
+    return () => clearInterval(timer);
+  }, []);
 
   const access = useAccess();
   const assetId = selected?.outcome.assetId ?? "";
@@ -150,10 +198,18 @@ export function TradeTicket({ selected, configured, initialSide, outcomeIndex, o
   const amount = parseDecimal(amountText.trim());
 
   // Build the request exactly as the server will see it; the same pure validator pre-checks it.
+  const nowSec = Math.floor(nowMs / 1000);
+  const previewExpiry = kind === "LIMIT" ? resolveExpiry(expiryChoice, customExpiry, nowSec) : undefined;
+  // A custom choice with no/invalid date must not silently become GTC.
+  const expiryMissing = kind === "LIMIT" && expiryChoice === "custom" && previewExpiry === undefined;
   const request: OrderRequest | null =
     kind === "LIMIT"
-      ? price !== null && sizeText.trim() !== ""
-        ? { assetId, conditionId: market.conditionId ?? "", side, type: "LIMIT", price: formatDecimal(price), size: sizeText.trim() }
+      ? price !== null && sizeText.trim() !== "" && !expiryMissing
+        ? {
+            assetId, conditionId: market.conditionId ?? "", side, type: "LIMIT", price: formatDecimal(price), size: sizeText.trim(),
+            ...(previewExpiry !== undefined ? { expiresAt: previewExpiry } : {}),
+            ...(postOnly ? { postOnly: true } : {}),
+          }
         : null
       : side === "BUY"
         ? amountText.trim() !== ""
@@ -176,8 +232,9 @@ export function TradeTicket({ selected, configured, initialSide, outcomeIndex, o
           mode,
           heldSize: heldText,
           maxOrderUsdc: PRE_CHECK_CAP,
-          bestBid: book.data?.bids[0]?.price ?? null,
-          bestAsk: book.data?.asks[0]?.price ?? null,
+          bestBid: bestOf(book.data?.bids, "max"),
+          bestAsk: bestOf(book.data?.asks, "min"),
+          nowSec,
         })
       : null;
 
@@ -193,7 +250,8 @@ export function TradeTicket({ selected, configured, initialSide, outcomeIndex, o
       const res = await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(request),
+        // Presets are measured from submit time, so a slow confirmation cannot shorten the expiry.
+        body: JSON.stringify(withFreshExpiry(request, expiryChoice, customExpiry)),
       });
       const body: unknown = await res.json().catch(() => null);
       if (!res.ok) {
@@ -220,7 +278,19 @@ export function TradeTicket({ selected, configured, initialSide, outcomeIndex, o
     { label: "Market", value: market.question },
     { label: "Outcome", value: outcome.label },
     { label: "Side", value: side },
-    { label: "Type", value: kind === "LIMIT" ? "Limit (good-til-cancelled)" : "Market (fill or cancel remainder)" },
+    { label: "Type", value: kind === "LIMIT" ? "Limit" : "Market (fill or cancel remainder)" },
+    ...(kind === "LIMIT"
+      ? [
+          {
+            label: "Expires",
+            value:
+              previewExpiry === undefined
+                ? "Good til cancelled"
+                : `${formatTime(previewExpiry * 1000)}${expiryChoice === "custom" ? "" : ` (${EXPIRY_OPTIONS.find((o) => o.value === expiryChoice)?.label} from confirmation)`}`,
+          },
+          ...(postOnly ? [{ label: "Post only", value: "Yes: rejected instead of filling immediately" }] : []),
+        ]
+      : []),
     { label: "Price", value: kind === "LIMIT" && price !== null ? centsOf(price) : est?.avg ? `~${centsOf(est.avg)} avg (est.)` : "-" },
     { label: "Shares", value: est ? `${kind === "MARKET" && side === "BUY" ? "~" : ""}${fmtShares(formatDecimal(est.shares))}` : "-" },
     { label: side === "BUY" ? "Total cost" : "Total proceeds", value: est ? `${kind === "MARKET" && side === "SELL" ? "~" : ""}${usd(est.total)}` : "-" },
@@ -298,6 +368,26 @@ export function TradeTicket({ selected, configured, initialSide, outcomeIndex, o
             </span>
           </label>
         )}
+        {kind === "LIMIT" ? (
+          <>
+            <label>
+              Expires
+              <select value={expiryChoice} onChange={(e) => setExpiryChoice(e.target.value as ExpiryChoice)} data-testid="expiry-select">
+                {EXPIRY_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+              </select>
+            </label>
+            {expiryChoice === "custom" ? (
+              <input type="datetime-local" aria-label="Custom expiry" value={customExpiry} onChange={(e) => setCustomExpiry(e.target.value)} />
+            ) : null}
+            <label className={styles.check}>
+              <input type="checkbox" checked={postOnly} onChange={(e) => setPostOnly(e.target.checked)} />
+              Post only
+              <span className={styles.muted}>Rejected instead of filling immediately</span>
+            </label>
+          </>
+        ) : null}
       </fieldset>
 
       <dl className={styles.summary}>

@@ -58,6 +58,7 @@ export const orderColumns: Column<OrderDto>[] = [
   { header: "Price", numeric: true, render: (o) => formatCents(o.price) },
   { header: "Size", numeric: true, render: (o) => formatShares(o.originalSize) },
   { header: "Filled", numeric: true, render: (o) => formatShares(o.sizeMatched) },
+  { header: "Expires", render: (o) => (o.expiresAt === null ? "GTC" : formatTime(o.expiresAt * 1000)) },
   { header: "Status", render: (o) => o.status },
   { header: "", slot: "order-actions", render: (o) => <CancelOrderButton orderId={o.id} /> },
 ];

@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Phase 8: limit orders can expire (GTD: 1 hour, 1 day, 1 week or a custom time) and be post-only; Open orders shows an Expires column. App-run take-profit/stop-loss and TWAP rules (off unless `AUTOMATION_ENABLED=true`; `AUTOMATION_FILE`): an Automate panel on the event page, an `/automation` page with pause/resume and cancel, and a header link. Rules place market orders through the same server checks, only while the app runs, and every restart begins paused.
+- Fix: the ticket's post-only and price checks now pick the best bid/ask by value (book levels arrive worst-first).
 - Project docs: phased plan, state tracker, external facts (verified 2026-11-13), hazards, agent
   instructions.
 - Phase 0 slice A: app scaffold (Next.js, Node 24), env validation, Host/Origin middleware, `/api/access`, access badge, `npm run doctor`, client-bundle secret scan.

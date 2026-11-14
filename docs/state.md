@@ -52,6 +52,15 @@ v1 is live-tested with a real wallet (order placed and cancelled, 2026-11-14). `
   every 15 s, Notification or in-page toast, `/alerts` page, header count. Contract
   `src/lib/phase7-types.ts`.
 
+- **Phase 8 — GTD, post-only, app-run TP/SL and TWAP.** `expiresAt` (Unix s, 5 min–365 d) and
+  `postOnly` on LIMIT orders (`validate.ts`: rejects crossing post-only); ticket Expires select and
+  Post only; `OrderDto.expiresAt` from the SDK's ISO `expiresAt`. Automation: pure
+  `src/lib/automation.ts`, `src/server/automation/{store,engine,runtime}.ts` (globalThis singleton,
+  5 s tick on fresh midpoints, 2-tick TP/SL confirmation, write-ahead `firing`, startup pause,
+  rule stops on refusal or a throw from the order call, 3 failures in a row pause the engine),
+  `/api/automation{,/rules,/rules/[id],/control}` behind `AUTOMATION_ENABLED`; UI
+  `src/components/automation/*`, `/automation`, header link. Contract `src/lib/phase8-types.ts`.
+
 Verified live without a key (2026-11-13): NVIDIA lookup by URL, market URL, condition id and id;
 24 listed candidates; live order books; search routing; not-configured states; Host and Origin
 rejections (403); order POST without key → 503.
@@ -60,7 +69,7 @@ rejections (403); order POST without key → 503.
 cancel, close-only detection via `fetchClosedOnlyMode`, and the ticket's enabled state. No
 order has ever been sent.
 
-**Not built:** "Your orders" strip on the market page; Phase 4 hardening review.
+**Not built:** nothing planned beyond Phase 8.
 
 ## Settled decisions
 
@@ -74,6 +83,7 @@ order has ever been sent.
 | No VPN, proxy, or remote-host workaround for jurisdiction limits. | Breaches Polymarket's terms; see H3. |
 | v1 opens and closes positions. Trading mode comes from the API jurisdiction table (`src/lib/jurisdiction.ts`) plus `fetchClosedOnlyMode`, never from geoblock's `blocked` flag. | User confirmed the earlier `AR` reading was their VPN (2026-11-13). Geoblock's `blocked` describes the website: IE reported `blocked: true` though IE is API-open (F1, F3). |
 | No real orders are placed by agents or tests. Order placement is mocked in tests; live order tests are done by the user. | Real money. |
+| TP/SL and TWAP run in this app (opt-in `AUTOMATION_ENABLED`), not natively, and only while the server runs. | Polymarket offers them only for perps (F28); user chose app-run on 2026-11-14. Risks in H13. |
 
 ## Invariants
 
@@ -84,6 +94,7 @@ Each names what breaks silently if violated.
 3. **Every order passes server-side validation before the SDK call.** Violated → off-tick rejections, oversized orders, opening orders while close-only (H3, H5, H8). Enforced by: `src/server/orders/validate.ts` with unit tests.
 4. **Outcome → assetId mapping lives in one tested function.** Violated → orders on the wrong outcome (H4). Enforced by: `src/lib/market.ts` tests against the NVIDIA fixture.
 5. **SDK version is exact-pinned.** Violated → silent breakage on install (H7). Enforced by: `package.json` review.
+6. **Automation never re-fires an order whose outcome is unknown.** Violated → duplicate unattended orders (H13). Enforced by: `firing` persisted before the SDK call, interrupted and thrown placements end the rule; `tests/automation-engine.test.ts`.
 
 ## Open questions
 
@@ -93,9 +104,10 @@ Each names what breaks silently if violated.
 
 ## Next action
 
-Phase 7 accepted in the browser on 2026-11-14: redeem/cancel-all guards (403 without Origin,
-400 bad input, 409 nothing to redeem — nothing submitted), Cancel all disabled with 0 orders,
-positions row shows Close (not Redeem) for the user's open NVIDIA position, an alert fired with
-an in-page toast (Notifications are blocked in the in-app browser), `/alerts` lists, re-arms and
-deletes. Live redeem and live cancel-all are untested until the user has a resolved position /
-open orders. Next: Phase 8 (advanced order types) when the user asks.
+Phase 8 accepted in the browser on 2026-11-14 on a separate server with automation enabled and
+the engine paused: ticket shows Expires and Post only; a TP/SL rule (99¢ / 1¢) was armed through
+the confirm dialog with the held size prefilled; API rejected a trigger already met, a size over
+the holding and a TWAP slice over the cap; a TWAP rule (1¢ limit) was created; both survived a
+restart as paused (`startup`); `/automation` showed them, cancelled and removed them; the
+default server shows the "switched off" explanation. The engine was never resumed, so no rule
+fired — live firing is untested until the user enables it. No further phases planned.

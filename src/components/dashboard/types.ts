@@ -38,6 +38,8 @@ export type OrderDto = {
   sizeMatched: string;
   createdAt: string;
   status: string;
+  /** GTD expiry, Unix seconds; null for good-til-cancelled. */
+  expiresAt: number | null;
   /** Market question and parent event slug; null when the lookup failed. */
   question: string | null;
   eventSlug: string | null;

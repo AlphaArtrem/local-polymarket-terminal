@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import type { EventDTO, MarketDTO, SelectedOutcome } from "@/lib/market";
 import { cents, shortDate, usd } from "./fmt";
 import { AlertButton } from "../alerts/AlertButton";
+import { AutomateSection } from "../automation/AutomateSection";
 import { OrderBook } from "./OrderBook";
 import { PriceChart } from "./PriceChart";
 import { TradeTape } from "./TradeTape";
@@ -160,6 +161,16 @@ export function MarketView({ event, markets, initialAssetId, initialSide, config
             outcomeIndex={side}
             onOutcomeChange={setSide}
           />
+          {configured && market?.conditionId && outcome ? (
+            <AutomateSection
+              key={`auto-${outcome.assetId}`}
+              assetId={outcome.assetId}
+              conditionId={market.conditionId}
+              label={`${market.title} · ${outcome.label}`}
+              eventSlug={event.slug}
+              currentPrice={outcome.price ?? null}
+            />
+          ) : null}
         </aside>
       </div>
       {configured ? (

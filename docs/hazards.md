@@ -121,3 +121,14 @@ aborted `/api/stream` requests. Unit tests passed because they cover the pure re
 Fix: subscribe/getSnapshot are memoised per asset, and the store waits 2 s with no listeners
 before closing the connection (survives re-renders and Strict Mode double mounts).
 
+
+## H13 — App-run orders fire when nobody is watching (Prediction)
+
+TP/SL and TWAP (Phase 8) are executed by this local server, not by Polymarket. Failure modes:
+a rule fires on a midpoint spike in a thin book; a crash between "placing" and "recorded" leads to
+a double order on restart; a stop-loss silently never fires because the app was closed; a
+repeated venue refusal loops. Mitigations: off unless `AUTOMATION_ENABLED=true`; TP/SL needs the
+trigger on two consecutive checks; every order goes through `placeOrder` (mode, size, cap and
+slippage checks); a rule is saved as "firing" before the SDK call and an interrupted rule is
+never re-fired; every restart begins paused until the user resumes; refusals stop the rule and
+three failures in a row pause the engine. Nothing fires while the server is stopped.

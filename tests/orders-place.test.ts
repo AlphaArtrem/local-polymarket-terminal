@@ -63,6 +63,24 @@ describe("placeOrder", () => {
     expect(client.waitForOrderFillSettlement).not.toHaveBeenCalled();
   });
 
+  it("passes expiration (Unix seconds) and postOnly to the SDK only when set", async () => {
+    const expiresAt = Math.floor(Date.now() / 1000) + 3600;
+    await placeOrder({ ...baseRequest, expiresAt, postOnly: true });
+    expect(client.placeLimitOrder).toHaveBeenLastCalledWith({
+      assetId: YES, price: "0.013", size: "5", side: "BUY", expiration: expiresAt, postOnly: true,
+    });
+    await placeOrder({ ...baseRequest, postOnly: false });
+    const call = client.placeLimitOrder.mock.calls.at(-1)![0] as Record<string, unknown>;
+    expect(call).not.toHaveProperty("expiration");
+    expect(call).not.toHaveProperty("postOnly");
+  });
+
+  it("rejects an expiry inside the minimum window against the server clock", async () => {
+    const soon = Math.floor(Date.now() / 1000) + 60;
+    expect(await placeOrder({ ...baseRequest, expiresAt: soon })).toMatchObject({ ok: false, code: "INVALID_EXPIRY" });
+    expect(client.placeLimitOrder).not.toHaveBeenCalled();
+  });
+
   it("uses the order book's tick, not the client's: off-tick is rejected before any SDK call", async () => {
     client.fetchOrderBook.mockResolvedValue({ ...(await client.fetchOrderBook()), tickSize: "0.01" });
     const result = await placeOrder(baseRequest);

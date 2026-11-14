@@ -6,6 +6,7 @@ import {
   parseDecimal,
 } from "@/lib/decimal";
 import type { TradingMode } from "@/lib/jurisdiction";
+import { MAX_EXPIRY_SECONDS, MIN_EXPIRY_SECONDS } from "@/lib/phase8-types";
 
 /**
  * Pure order validation (invariant 3). It trusts nothing in `request`; every fact it checks against
@@ -23,6 +24,10 @@ export type OrderRequest = {
   size?: string;
   /** pUSD to spend, decimal string. Market BUY only. */
   amount?: string;
+  /** LIMIT only: good-til-date expiry, Unix seconds. Omitted means good-til-cancelled. */
+  expiresAt?: number;
+  /** LIMIT only: reject instead of filling immediately. */
+  postOnly?: boolean;
 };
 
 export type MarketContext = {
@@ -42,11 +47,13 @@ export type ValidationContext = {
   maxOrderUsdc: number;
   bestBid: string | null;
   bestAsk: string | null;
+  /** Server clock, Unix seconds. Injected so validation stays pure. */
+  nowSec: number;
 };
 
 /** What the SDK call needs, already normalised. Money fields are canonical decimal strings. */
 export type ValidatedOrder =
-  | { kind: "LIMIT"; assetId: string; side: "BUY" | "SELL"; price: string; size: string; cost: string }
+  | { kind: "LIMIT"; assetId: string; side: "BUY" | "SELL"; price: string; size: string; cost: string; expiresAt: number | null; postOnly: boolean }
   | { kind: "MARKET_BUY"; assetId: string; amount: string }
   | { kind: "MARKET_SELL"; assetId: string; size: string };
 
@@ -68,9 +75,37 @@ function required(name: string, text: string | undefined): Field {
 }
 
 /** Fields that do not belong to this order type are rejected, not ignored. */
-function forbidden(fields: Record<string, string | undefined>): ValidationFailure | null {
+function forbidden(fields: Record<string, string | number | boolean | undefined>): ValidationFailure | null {
   const name = Object.keys(fields).find((k) => fields[k] !== undefined);
   return name ? fail("UNEXPECTED_FIELD", `${name} is not allowed for this order`) : null;
+}
+
+function checkExpiry(expiresAt: number | undefined, nowSec: number): ValidationFailure | null {
+  if (expiresAt === undefined) return null;
+  if (!Number.isInteger(expiresAt)) return fail("INVALID_EXPIRY", "expiresAt must be a whole number of Unix seconds");
+  if (expiresAt < nowSec + MIN_EXPIRY_SECONDS) {
+    return fail("INVALID_EXPIRY", `Expiry must be at least ${MIN_EXPIRY_SECONDS / 60} minutes in the future`);
+  }
+  if (expiresAt > nowSec + MAX_EXPIRY_SECONDS) {
+    return fail("INVALID_EXPIRY", `Expiry must be within ${MAX_EXPIRY_SECONDS / 86_400} days`);
+  }
+  return null;
+}
+
+/** A post-only order that would match on arrival is rejected by the venue; refuse it up front. */
+function checkPostOnly(request: OrderRequest, price: bigint, ctx: ValidationContext): ValidationFailure | null {
+  if (!request.postOnly) return null;
+  const opposite = request.side === "BUY" ? ctx.bestAsk : ctx.bestBid;
+  const best = opposite === null ? null : parseDecimal(opposite);
+  if (best === null) return null;
+  const crosses = request.side === "BUY" ? price >= best : price <= best;
+  return crosses
+    ? fail("POST_ONLY_WOULD_CROSS", `Post-only price would fill immediately against the best ${request.side === "BUY" ? "ask" : "bid"} ${opposite}`)
+    : null;
+}
+
+function limitOnly(request: OrderRequest) {
+  return { expiresAt: request.expiresAt, postOnly: request.postOnly };
 }
 
 function checkMode(request: OrderRequest, mode: TradingMode): ValidationFailure | null {
@@ -156,7 +191,9 @@ function validateLimit(request: OrderRequest, ctx: ValidationContext): Validatio
   const failure =
     checkPrice(p, ctx.market.tickSize) ??
     checkShares(s, ctx.market.minSize, "size") ??
-    (request.side === "SELL" ? checkHeld(s, ctx.heldSize) : null);
+    (request.side === "SELL" ? checkHeld(s, ctx.heldSize) : null) ??
+    checkExpiry(request.expiresAt, ctx.nowSec) ??
+    checkPostOnly(request, p, ctx);
   if (failure) return failure;
 
   const cost = mulCeil(p, s);
@@ -172,6 +209,8 @@ function validateLimit(request: OrderRequest, ctx: ValidationContext): Validatio
       price: formatDecimal(p),
       size: formatDecimal(s),
       cost: formatDecimal(cost),
+      expiresAt: request.expiresAt ?? null,
+      postOnly: request.postOnly === true,
     },
   };
 }
@@ -179,7 +218,7 @@ function validateLimit(request: OrderRequest, ctx: ValidationContext): Validatio
 function validateMarketBuy(request: OrderRequest, ctx: ValidationContext): ValidationResult {
   const amount = required("amount", request.amount);
   if (isFailure(amount)) return amount;
-  const extra = forbidden({ price: request.price, size: request.size });
+  const extra = forbidden({ price: request.price, size: request.size, ...limitOnly(request) });
   if (extra) return extra;
   const a = amount.value;
 
@@ -195,7 +234,7 @@ function validateMarketBuy(request: OrderRequest, ctx: ValidationContext): Valid
 function validateMarketSell(request: OrderRequest, ctx: ValidationContext): ValidationResult {
   const size = required("size", request.size);
   if (isFailure(size)) return size;
-  const extra = forbidden({ price: request.price, amount: request.amount });
+  const extra = forbidden({ price: request.price, amount: request.amount, ...limitOnly(request) });
   if (extra) return extra;
   const s = size.value;
 

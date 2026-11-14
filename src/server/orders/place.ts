@@ -77,18 +77,22 @@ async function loadContext(client: SecureClient, request: OrderRequest): Promise
     maxOrderUsdc: getEnv().maxOrderUsdc,
     bestBid: bestPrice(book.bids, "max"),
     bestAsk: bestPrice(book.asks, "min"),
+    nowSec: Math.floor(Date.now() / 1000),
   };
 }
 
 function submit(client: SecureClient, order: ValidatedOrder, ctx: ValidationContext) {
   switch (order.kind) {
     case "LIMIT":
-      // GTC: placeLimitOrder takes no order type; omitting `expiration` makes it good-til-cancelled.
+      // placeLimitOrder takes no order type: omitting `expiration` is good-til-cancelled, passing
+      // Unix seconds makes it GTD. `postOnly` is passed only when set so GTC calls stay unchanged.
       return client.placeLimitOrder({
         assetId: order.assetId,
         price: order.price,
         size: order.size,
         side: order.side === "BUY" ? OrderSide.BUY : OrderSide.SELL,
+        ...(order.expiresAt !== null ? { expiration: order.expiresAt } : {}),
+        ...(order.postOnly ? { postOnly: true } : {}),
       });
     case "MARKET_BUY": {
       // `amount` is pre-fee notional; fees are added on top unless `maxSpend` caps the all-in

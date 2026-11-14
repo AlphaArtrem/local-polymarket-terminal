@@ -12,6 +12,8 @@ describe("parseEnv", () => {
       relayer: undefined,
       maxOrderUsdc: 25,
       polygonRpcUrl: DEFAULT_POLYGON_RPC_URL,
+      automationEnabled: false,
+      automationFile: ".data/automation.json",
       port: 3737,
     });
   });
@@ -68,5 +70,13 @@ describe("parseEnv", () => {
     } catch (err) {
       expect(String((err as Error).message)).not.toContain("SECRET-RELAYER-VALUE");
     }
+  });
+});
+
+describe("parseEnv automation", () => {
+  it("opts in only with the exact string true and takes a custom file", () => {
+    expect(parseEnv({ AUTOMATION_ENABLED: "true", AUTOMATION_FILE: "x/y.json" })).toMatchObject({ automationEnabled: true, automationFile: "x/y.json" });
+    expect(parseEnv({ AUTOMATION_ENABLED: "" }).automationEnabled).toBe(false);
+    expect(() => parseEnv({ AUTOMATION_ENABLED: "yes" })).toThrow(EnvError);
   });
 });

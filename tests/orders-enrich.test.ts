@@ -65,3 +65,17 @@ describe("market name enrichment", () => {
     expect(listMarketsByCondition).not.toHaveBeenCalled();
   });
 });
+
+describe("mapOrder expiry", () => {
+  const map = (expiresAt?: string) => portfolio.mapOrder({ ...order("o1", "0xaa"), expiresAt } as never);
+
+  it("converts the SDK ISO expiry to Unix seconds", () => {
+    expect(map("2026-06-01T00:00:00Z").expiresAt).toBe(Date.parse("2026-06-01T00:00:00Z") / 1000);
+  });
+
+  it("maps a missing, epoch-zero or unparseable expiry to null (GTC)", () => {
+    expect(map(undefined).expiresAt).toBeNull();
+    expect(map("1970-01-01T00:00:00Z").expiresAt).toBeNull();
+    expect(map("garbage").expiresAt).toBeNull();
+  });
+});

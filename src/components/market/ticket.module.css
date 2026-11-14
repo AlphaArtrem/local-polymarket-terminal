@@ -11,6 +11,9 @@
 .fields { border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
 .fields label { display: flex; flex-direction: column; gap: 2px; }
 .fields input { width: 100%; padding: 4px 8px; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 3px; font: inherit; }
+.fields select { width: 100%; padding: 4px 8px; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 3px; font: inherit; }
+.fields .check { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 6px; }
+.fields .check input { width: auto; }
 .inline { display: flex; gap: 4px; }
 .max { font: inherit; padding: 2px 8px; border: 1px solid var(--border); background: var(--bg); color: var(--text); cursor: pointer; }
 .max:disabled { color: var(--muted); cursor: default; }

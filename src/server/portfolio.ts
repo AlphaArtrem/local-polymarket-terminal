@@ -83,9 +83,17 @@ export function mapOrder(o: OpenOrder): OrderDto {
     sizeMatched: o.sizeMatched,
     createdAt: o.createdAt,
     status: o.status,
+    expiresAt: expirySeconds(o.expiresAt),
     question: null,
     eventSlug: null,
   };
+}
+
+/** SDK gives an ISO string, absent for GTC orders; a zero/unparseable value also means no expiry. */
+export function expirySeconds(value: string | undefined): number | null {
+  if (!value) return null;
+  const ms = Date.parse(value);
+  return Number.isNaN(ms) || ms <= 0 ? null : Math.floor(ms / 1000);
 }
 
 export function mapTrade(t: ClobTrade): TradeDto {

@@ -8,6 +8,9 @@ import { z } from "zod";
 /** Public Polygon RPC verified on 2026-11-14 to accept 25-request JSON-RPC batches. */
 export const DEFAULT_POLYGON_RPC_URL = "https://polygon-bor-rpc.publicnode.com";
 
+/** Resolved from the working directory by the store. */
+export const DEFAULT_AUTOMATION_FILE = ".data/automation.json";
+
 const blankToUndefined = (v: unknown) => (typeof v === "string" && v.trim() === "" ? undefined : v);
 
 const schema = z
@@ -47,6 +50,9 @@ const schema = z
       blankToUndefined,
       z.url({ protocol: /^https$/, error: "must be an https URL" }).default(DEFAULT_POLYGON_RPC_URL),
     ),
+    // Explicit opt-in: the app places TP/SL and TWAP orders unattended while it runs.
+    AUTOMATION_ENABLED: z.preprocess(blankToUndefined, z.enum(["true", "false"], { error: 'must be "true" or "false"' }).default("false")),
+    AUTOMATION_FILE: z.preprocess(blankToUndefined, z.string().max(500).default(DEFAULT_AUTOMATION_FILE)),
     PORT: z.preprocess(
       blankToUndefined,
       z.coerce
@@ -73,6 +79,8 @@ export type Env = {
   relayer: { key: string; address: string } | undefined;
   maxOrderUsdc: number;
   polygonRpcUrl: string;
+  automationEnabled: boolean;
+  automationFile: string;
   port: number;
 };
 
@@ -99,6 +107,8 @@ export function parseEnv(source: Record<string, string | undefined>): Env {
         : undefined,
     maxOrderUsdc: v.MAX_ORDER_USDC,
     polygonRpcUrl: v.POLYGON_RPC_URL,
+    automationEnabled: v.AUTOMATION_ENABLED === "true",
+    automationFile: v.AUTOMATION_FILE,
     port: v.PORT,
   };
 }

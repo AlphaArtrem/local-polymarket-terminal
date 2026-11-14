@@ -12,6 +12,9 @@ export const placeOrderBody = z
     price: decimal.optional(),
     size: decimal.optional(),
     amount: decimal.optional(),
+    /** LIMIT only: Unix seconds. Range is checked against the server clock in validateOrder. */
+    expiresAt: z.number().int().positive().optional(),
+    postOnly: z.boolean().optional(),
   })
   .strict();
 
