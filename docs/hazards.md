@@ -138,7 +138,7 @@ three failures in a row pause the engine. Nothing fires while the server is stop
 Funds sent to the signer key's address, or plain USDC sent straight to the account wallet, are not
 credited as pUSD; a wrong network or token needs recovery.polymarket.com. **Guard:** the Deposit
 dialog shows only the bridge EVM address (checksummed, grouped), says Polygon USDC/USDC.e only,
-shows the live minimum, and shows no address at all when the bridge call fails. The server refuses
+shows the live minimum, and shows no address at all when the bridge call fails. The QR encodes exactly the shown address (`jsqr` round-trip test). The server refuses
 (409) when the configured wallet and signer look misconfigured.
 
 ## H15 — A shortcut changes the order under a confirm dialog (Prediction)
@@ -152,3 +152,47 @@ anything (tests/shortcuts.test.ts).
 
 Market titles are third-party text; a cell starting with `=`, `+`, `-` or `@` can run as a formula
 in a spreadsheet. **Guard:** `src/lib/csv.ts` prefixes `'` on such cells, except plain numbers.
+
+## H17 — Implicit Deposit Wallet deploy (Prediction)
+
+`createSecureClient` deploys a Deposit Wallet when `wallet` is omitted or points to an undeployed
+one, and with a relayer key it does so without any user signature (F32). **Guard:** `wallet` is
+always set; a non-signer wallet with empty `eth_getCode` is refused first; tests spy on
+`createSecureClient`.
+
+## H18 — Wrong account auto-detected (Prediction)
+
+A failed profile lookup that fell back to EOA would show an empty account, and deposits or orders
+would go to the wrong place. **Guard:** only a 404 falls back; other errors are surfaced
+(`ACCOUNT_LOOKUP_FAILED`); the source is shown in the wallet-mode header chip and by `npm run doctor` in key mode; there is an
+override.
+
+## H19 — Session or signing relay abuse (Prediction)
+
+Another local process, tab or page tries to use the L2 credentials or trigger wallet prompts.
+**Guard:** HttpOnly SameSite=Strict cookie, Origin check, one session, a signer that is inert
+outside a user-started operation, an allowlist of primary types per operation, and every signature
+or transaction checked against the session signer and the request.
+
+## H20 — Signed order whose response is lost (Prediction)
+
+The user signs, then closes the tab; the server still posts the order, and a retry double-orders.
+**Guard:** one operation per session; the finished envelope is kept 10 minutes at
+`/api/wallet/ops/[id]`; the UI says to check Open orders before retrying.
+
+## H21 — EOA approvals stop partway (Prediction)
+
+POL runs out, or the user rejects one of up to 17 transactions. **Guard:** POL pre-check
+(`NEEDS_POL`), the state is re-read afterwards, and a re-run sends only the approvals still missing
+(the SDK recomputes them).
+
+## H22 — Automation using a browser session (Prediction)
+
+**Guard:** background code has no request context, so `getSecureClient()` throws in wallet mode;
+`requireEngine` refuses (`AUTOMATION_NEEDS_KEY`); the engine uses `getEnvSecureClient`.
+
+## H23 — VPS exposed or used as a jurisdiction workaround (Prediction)
+
+Port 3737 open in the security group, a readable `.env.local`, or a region chosen to dodge a
+restriction. **Guard:** loopback bind, SSH tunnel only, a security group that allows 22 only,
+`chmod 600`, and the README's jurisdiction warning first. See H3.

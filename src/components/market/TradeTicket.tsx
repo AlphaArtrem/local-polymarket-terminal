@@ -20,6 +20,8 @@ import { formatTime } from "@/lib/format";
 import { cents, shares as fmtShares } from "./fmt";
 import styles from "./ticket.module.css";
 import { useAccess, useBook, useHeld } from "./useTicketData";
+import { ConnectPrompt } from "../wallet/ConnectWallet";
+import { useWallet } from "../wallet/useWallet";
 
 type Side = "BUY" | "SELL";
 type OrderKind = "LIMIT" | "MARKET";
@@ -110,6 +112,7 @@ function estimate(kind: OrderKind, side: Side, price: bigint | null, size: bigin
 }
 
 export function TradeTicket({ selected, configured, initialSide, outcomeIndex, onOutcomeChange }: Props) {
+  const wallet = useWallet();
   const [tradeSide, setTradeSide] = useState<Side>(initialSide ?? "BUY");
   const [kind, setKind] = useState<OrderKind>("LIMIT");
   const [priceText, setPriceText] = useState("");
@@ -192,10 +195,14 @@ export function TradeTicket({ selected, configured, initialSide, outcomeIndex, o
     return (
       <div className={`card ${styles.ticket}`} data-testid="ticket" data-state="not-configured">
         <strong>Trade ticket</strong>
-        <div className={styles.notice}>
-          Wallet not configured. Add your wallet settings to <code>.env.local</code> and restart the dev server (see the
-          README) to trade.
-        </div>
+        {wallet.mode === "wallet" ? (
+          <ConnectPrompt text="Connect a browser wallet to trade." />
+        ) : (
+          <div className={styles.notice}>
+            Wallet not configured. Add your wallet settings to <code>.env.local</code> and restart the dev server (see the
+            README) to trade.
+          </div>
+        )}
       </div>
     );
   }
@@ -272,7 +279,7 @@ export function TradeTicket({ selected, configured, initialSide, outcomeIndex, o
     setSubmitting(true);
     setSubmitError(null);
     try {
-      const res = await fetch("/api/orders", {
+      const res = await wallet.fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         // Presets are measured from submit time, so a slow confirmation cannot shorten the expiry.

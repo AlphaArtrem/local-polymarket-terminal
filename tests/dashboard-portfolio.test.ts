@@ -22,11 +22,13 @@ vi.mock("@polymarket/client/actions", () => ({
   fetchPortfolioValue,
   fetchUserPnl,
 }));
-vi.mock("@/lib/polymarket-core", () => ({ fetchPusdBalance }));
+vi.mock("@/lib/polymarket-core", async (orig) => ({ ...(await orig<object>()), fetchPusdBalance }));
 vi.mock("@/server/polymarket", () => {
   class NotConfiguredError extends Error {}
+  class WalletNotConnectedError extends NotConfiguredError {}
   return {
     NotConfiguredError,
+    WalletNotConnectedError,
     getSecureClient: vi.fn(async () => ({
       account: { signer: "0xSIGNER", wallet: "0xWALLET", walletType: 3 },
     })),

@@ -124,8 +124,11 @@ function submit(client: SecureClient, order: ValidatedOrder, ctx: ValidationCont
 }
 
 /** Validates and places one order. Throws SDK/config errors; returns validation and venue refusals. */
-export async function placeOrder(request: OrderRequest): Promise<PlaceResult> {
-  const client = await getSecureClient();
+export async function placeOrder(
+  request: OrderRequest,
+  deps: { getClient?: () => Promise<SecureClient> } = {},
+): Promise<PlaceResult> {
+  const client = await (deps.getClient ?? getSecureClient)();
   const ctx = await loadContext(client, request);
   if (!ctx) return { ok: false, code: "MARKET_NOT_FOUND", message: "Market not found" };
 

@@ -29,8 +29,10 @@ describe("parseEnv", () => {
     expect(env).toMatchObject({ privateKey: KEY, walletAddress: WALLET, maxOrderUsdc: 10, port: 4000 });
   });
 
-  it("requires the wallet when the key is set", () => {
-    expect(() => parseEnv({ POLYMARKET_PRIVATE_KEY: KEY })).toThrow(EnvError);
+  it("accepts a key without a wallet address (resolved automatically)", () => {
+    const env = parseEnv({ POLYMARKET_PRIVATE_KEY: KEY });
+    expect(env.privateKey).toBe(KEY);
+    expect(env.walletAddress).toBeUndefined();
   });
 
   it("rejects a malformed key without echoing it", () => {

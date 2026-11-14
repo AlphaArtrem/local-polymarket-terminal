@@ -11,6 +11,8 @@ import { TradeTape } from "./TradeTape";
 import { TradeTicket } from "./TradeTicket";
 import { StarButton } from "../watchlist/StarButton";
 import { YourOrders } from "./YourOrders";
+import type { AccountMode } from "@/lib/wallet-protocol";
+import { useWallet } from "../wallet/useWallet";
 import styles from "./market.module.css";
 
 type Props = {
@@ -18,7 +20,9 @@ type Props = {
   markets: MarketDTO[];
   initialAssetId?: string;
   initialSide?: "BUY" | "SELL";
+  /** Key mode: server-known. Ignored in wallet mode, where a connected session decides. */
   configured: boolean;
+  mode?: AccountMode;
 };
 
 const yesPrice = (m: MarketDTO) => Number(m.outcomes[0]?.price ?? -1);
@@ -33,7 +37,9 @@ function locate(markets: MarketDTO[], assetId: string | undefined) {
   return null;
 }
 
-export function MarketView({ event, markets, initialAssetId, initialSide, configured }: Props) {
+export function MarketView({ event, markets, initialAssetId, initialSide, configured: serverConfigured, mode = "key" }: Props) {
+  const wallet = useWallet();
+  const configured = mode === "wallet" ? wallet.connected : serverConfigured;
   const sorted = useMemo(() => [...markets].sort((a, b) => yesPrice(b) - yesPrice(a)), [markets]);
   const initial = useMemo(() => locate(markets, initialAssetId), [markets, initialAssetId]);
   const [filter, setFilter] = useState("");
@@ -181,7 +187,7 @@ export function MarketView({ event, markets, initialAssetId, initialSide, config
             outcomeIndex={side}
             onOutcomeChange={setSide}
           />
-          {configured && market?.conditionId && outcome ? (
+          {configured && mode === "key" && market?.conditionId && outcome ? (
             <div className={`card ${styles.panel}`} aria-label="Pro tools">
               <div className={styles.panelHead}>
                 <span className="lbl">Pro: automation</span>

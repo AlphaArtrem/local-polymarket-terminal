@@ -13,6 +13,9 @@ import { NotConfiguredHint } from "./NotConfiguredHint";
 import { RedeemBanner } from "./RedeemBanner";
 import { Summary } from "./Summary";
 import type { ExportKind } from "@/lib/export";
+import type { AccountMode } from "@/lib/wallet-protocol";
+import { ConnectPrompt } from "../wallet/ConnectWallet";
+import { useWallet } from "../wallet/useWallet";
 import type { ActivityDto, OrderDto, Page, PositionDto, TradeDto } from "./types";
 import { useApi } from "./useApi";
 
@@ -29,7 +32,8 @@ const EXPORT_KIND: Record<Tab, ExportKind> = {
   Activity: "activity",
 };
 
-export function Dashboard({ configured }: { configured: boolean }) {
+export function Dashboard({ configured, mode = "key" }: { configured: boolean; mode?: AccountMode }) {
+  const wallet = useWallet();
   const [tab, setTab] = useState<Tab>("Open positions");
   const [refreshToken, setRefreshToken] = useState(0);
   const refresh = useCallback(() => setRefreshToken((n) => n + 1), []);
@@ -51,6 +55,15 @@ export function Dashboard({ configured }: { configured: boolean }) {
   }, [configured, refresh]);
 
   if (!configured) return <NotConfiguredHint />;
+  // Wallet mode: no session means every account route answers 401 WALLET_NOT_CONNECTED.
+  if (mode === "wallet" && !wallet.connected) {
+    return (
+      <div className={styles.page}>
+        <h1 className={styles.title}>Portfolio</h1>
+        <ConnectPrompt text="Connect a browser wallet to see your portfolio." />
+      </div>
+    );
+  }
 
   return (
     <div className={styles.page}>

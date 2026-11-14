@@ -1,12 +1,11 @@
 import "server-only";
 import { redeemPositions } from "@polymarket/client/actions";
 import type { RedeemResult } from "@/lib/phase7-types";
-import { getEnv } from "./env";
 import { getPositions } from "./portfolio";
 import { getSecureClient } from "./polymarket";
 
 export { RelayerKeyMissingError } from "./approvals";
-import { RelayerKeyMissingError } from "./approvals";
+import { currentPath, RelayerKeyMissingError, requirePol } from "./approvals";
 
 /** The account holds no redeemable position in the requested market. */
 export class NothingToRedeemError extends Error {
@@ -42,9 +41,12 @@ function withTimeout<T>(work: Promise<T>, ms: number): Promise<T | null> {
 }
 
 async function run(conditionId: string): Promise<RedeemResult> {
-  if (!getEnv().relayer) throw new RelayerKeyMissingError();
-  if (!(await holdsRedeemable(conditionId))) throw new NothingToRedeemError();
   const client = await getSecureClient();
+  // Same matrix as approvals: EOAs pay POL, smart wallets need a matching relayer key.
+  const path = await currentPath(client);
+  if (path === "unavailable") throw new RelayerKeyMissingError(client.account.signer);
+  if (!(await holdsRedeemable(conditionId))) throw new NothingToRedeemError();
+  if (path === "onchain") await requirePol(client.account.signer);
   const handle = await redeemPositions(client, { conditionId });
   // Confirmation is the handle's wait(): TransactionOutcome { transactionHash, transactionId }.
   const outcome = await withTimeout(handle.wait(), CONFIRM_TIMEOUT_MS);

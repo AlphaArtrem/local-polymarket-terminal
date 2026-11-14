@@ -1,4 +1,4 @@
-// Fails if the client bundle contains the private key or the env var name (invariant 1).
+// Fails if the client bundle contains the private key, the env var names or SDK client code (invariant 1).
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
@@ -28,6 +28,7 @@ for (const file of walk(root)) {
   const text = readFileSync(file, "utf8");
   if (text.includes("POLYMARKET_PRIVATE_KEY")) hits.push(`${file}: contains POLYMARKET_PRIVATE_KEY`);
   if (text.includes("POLYMARKET_RELAYER_API_KEY")) hits.push(`${file}: contains POLYMARKET_RELAYER_API_KEY`);
+  if (text.includes("createSecureClient")) hits.push(`${file}: contains SDK code (createSecureClient)`);
   if (relayerKey && text.includes(relayerKey)) hits.push(`${file}: contains the relayer API key value`);
   if (hasKey && text.toLowerCase().includes(key)) hits.push(`${file}: contains the private key value`);
 }

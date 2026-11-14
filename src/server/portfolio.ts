@@ -23,7 +23,8 @@ import type {
 } from "@/components/dashboard/types";
 import { fetchPusdBalance } from "@/lib/polymarket-core";
 import { listMarketsByCondition } from "./market-lookup";
-import { getSecureClient, NotConfiguredError } from "./polymarket";
+import { accountError } from "./orders/errors";
+import { getSecureClient } from "./polymarket";
 
 /** Read-only portfolio access. Nothing here signs, places or cancels anything. */
 
@@ -271,9 +272,8 @@ export async function respond(work: () => Promise<unknown>): Promise<Response> {
   try {
     return Response.json(await work(), { headers: { "Cache-Control": "no-store" } });
   } catch (err) {
-    if (err instanceof NotConfiguredError) {
-      return jsonError(503, "NOT_CONFIGURED", "Set POLYMARKET_PRIVATE_KEY and POLYMARKET_WALLET_ADDRESS in .env.local");
-    }
+    const account = accountError(err);
+    if (account) return account;
     if (err instanceof EnvError) return jsonError(500, "CONFIG_ERROR", err.message);
     console.error("portfolio request failed:", err instanceof Error ? err.name : "unknown");
     if (err instanceof RateLimitError) return jsonError(429, "RATE_LIMITED", "Rate limited by Polymarket; retry shortly");

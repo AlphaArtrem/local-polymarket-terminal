@@ -66,3 +66,19 @@ When a fact changes, edit the entry in place and update the date.
 | F20 | v2 wraps payloads in `data` and paginates by cursor only (`pagination.next_cursor`, `has_more`). Routes: `/v2/positions` (`status=CLOSED` for closed), `/v2/trades`, `/v2/activity`, `/v2/value`, `/v2/user-pnl`. Amounts suffixed `_usdc` are dollars; bare `size` is shares; `null` means unavailable, not zero. | /api-reference/data-api/overview, /migrate/data-api-v1-to-v2 | 2026-11-13 | Documented |
 | F29 | `POST https://bridge.polymarket.com/deposit {"address": <account wallet>}` returns `{address: {evm, svm, tron, btc}, note, warnings: [{code, message}]}`. Two calls in a row returned identical addresses, and none of them equals the wallet itself. Cloudflare answers 403 to Python's default `urllib` User-Agent; curl and Node fetch work. | Live calls (shape only recorded) | 2026-11-14 | Verified |
 | F30 | `GET https://bridge.polymarket.com/supported-assets` returns `{supportedAssets: [{chainId, chainName, token: {name, symbol, address, decimals}, minCheckoutUsd}], note}` (237 entries). Polygon (`chainId` "137") USDC and USDC.e: `minCheckoutUsd` 2. Fixture `tests/fixtures/bridge-supported-assets.json`. | Live call | 2026-11-14 | Verified |
+
+## Phase 10: signing, accounts, wallets
+
+| # | Fact | Source | Checked | Grade |
+| - | - | - | - | - |
+| F31 | The SDK's `Signer` interface; all SDK signing goes through it. | `types-DXzPFbmc.d.ts`, `viem.d.ts`, source map `src/workflow.ts` | 2026-11-15 | Documented |
+| F32 | `createSecureClient` options; with `wallet` omitted it derives a Deposit Wallet and deploys it. `deployDepositWallet` needs a relayer key and no signature. | `types-BQ5lL0ts.d.ts:11542-11601`, `src/clients.ts`, `src/actions/gasless.ts` | 2026-11-15 | Documented |
+| F33 | Wallet type classification and the `SESSION_KEY` default. | `src/wallet.ts` | 2026-11-15 | Documented |
+| F34 | EOA approvals and redeem are direct POL-paid transactions (17 approvals); non-EOA is gasless. | `src/actions/approvals.ts`, `src/actions/positions.ts` | 2026-11-15 | Documented |
+| F35 | `privateKey()`'s default transport ignores the app's RPC setting. | `dist/viem.js` | 2026-11-15 | Documented |
+| F36 | CLOB sends CORS `*` for `/time` and the `POST /order` preflight. | curl | 2026-11-15 | Verified |
+| F37 | `public-profile` answers 404 for an unknown address; the SDK returns `null` and maps `proxyWallet` to `wallet`. | curl, bindings types | 2026-11-15 | Verified / Documented |
+| F38 | EIP-712 primary types: `ClobAuth` (auth), `Order`, `TypedDataSign` (Deposit Wallet order), `SafeTx` / `Batch` (gasless). Order messages carry bigints. | `dist/*.js`, `src/exchange.ts`, `src/actions/gasless.ts` | 2026-11-15 | Documented |
+| F39 | `uqr@0.1.3` (MIT) and `jsqr@1.4.0` (Apache-2.0) have no dependencies. | `npm view` | 2026-11-15 | Verified |
+| F40 | MetaMask, Phantom (EVM), Trust, Rabby and Coinbase extensions announce through EIP-6963 and support `eth_signTypedData_v4` on chain 137. A stub announcing wallet was listed in the browser; real extensions were not tried. | EIP-6963 | 2026-11-15 | Assumed, needs a live check |
+| F41 | A reference terminal (humanplane/terminal) defaults to EOA mode, pays approvals in MATIC, uses Safe `execTransaction`, keeps L2 credentials in `localStorage` and targets pre-pUSD contracts. Not copied. | GitHub source | 2026-11-15 | Documented |

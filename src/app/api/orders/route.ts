@@ -4,17 +4,18 @@ import { tradingError } from "@/server/orders/errors";
 import { cancelAllOrders, cancelOrdersInMarkets } from "@/server/orders/cancel-all";
 import { placeOrder } from "@/server/orders/place";
 import { cursorQuery, getOpenOrders, parseQuery, respond } from "@/server/portfolio";
+import { withAccount } from "@/server/account/with-account";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(request: Request) {
+export const GET = withAccount(async (request: Request) => {
   const query = parseQuery(request, cursorQuery);
   if (!query.ok) return query.response;
   return respond(() => getOpenOrders(query.data.cursor));
-}
+});
 
 /** Places one order. Same-Origin is enforced by middleware; the body is re-validated server-side. */
-export async function POST(request: Request) {
+export const POST = withAccount(async (request: Request) => {
   const json: unknown = await request.json().catch(() => null);
   const body = placeOrderBody.safeParse(json);
   if (!body.success) {
@@ -30,13 +31,13 @@ export async function POST(request: Request) {
   } catch (err) {
     return tradingError(err, "place");
   }
-}
+}, { interactive: "order" });
 
 const CONDITION_ID = /^0x[0-9a-fA-F]{64}$/;
 const MAX_MARKETS = 50;
 
 /** Cancels all open orders, or only those in `?conditionIds=` markets. Same-Origin is enforced by middleware. */
-export async function DELETE(request: Request) {
+export const DELETE = withAccount(async (request: Request) => {
   const raw = new URL(request.url).searchParams.get("conditionIds");
   let ids: string[] | null = null;
   if (raw !== null) {
@@ -51,4 +52,4 @@ export async function DELETE(request: Request) {
   } catch (err) {
     return tradingError(err, "cancel all");
   }
-}
+});

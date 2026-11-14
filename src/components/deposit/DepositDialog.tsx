@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { groupAddress, type DepositInfo } from "@/lib/deposit";
 import { shortHash } from "@/lib/format";
+import { DepositQr } from "./DepositQr";
 import styles from "./deposit.module.css";
 
 type State =
@@ -84,6 +85,7 @@ function Ready({ info, copied, onCopy }: { info: DepositInfo; copied: boolean; o
         <button type="button" className={styles.close} onClick={onCopy}>Copy</button>
         <span className={styles.copied} aria-live="polite">{copied ? "Copied" : ""}</span>
       </div>
+      <DepositQr address={info.evm} />
       <p>
         Send USDC or USDC.e on Polygon to this address. Polymarket&apos;s bridge converts it to pUSD and credits your
         account wallet <span className="num">{short}</span>, usually within minutes.

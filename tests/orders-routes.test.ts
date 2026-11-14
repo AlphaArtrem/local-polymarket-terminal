@@ -7,8 +7,10 @@ const getSecureClient = vi.fn(async (): Promise<object> => ({}));
 
 vi.mock("@/server/polymarket", () => {
   class NotConfiguredError extends Error {}
-  return { NotConfiguredError, getSecureClient };
+  class WalletNotConnectedError extends NotConfiguredError {}
+  return { NotConfiguredError, WalletNotConnectedError, getSecureClient };
 });
+vi.mock("@/server/account/with-account", () => ({ withAccount: (h: unknown) => h }));
 vi.mock("@/server/orders/place", () => ({ placeOrder }));
 vi.mock("@/server/portfolio", () => ({ cursorQuery: {}, getOpenOrders: vi.fn(), parseQuery: vi.fn(), respond: vi.fn() }));
 vi.mock("@polymarket/client/actions", () => ({ cancelOrder }));
@@ -21,7 +23,7 @@ const CONDITION = "0x" + "a".repeat(64);
 const valid = { assetId: "123", conditionId: CONDITION, side: "BUY", type: "LIMIT", price: "0.013", size: "5" };
 
 const post = (body: unknown, raw = false) =>
-  POST(new Request("http://127.0.0.1:3737/api/orders", { method: "POST", body: raw ? (body as string) : JSON.stringify(body) }));
+  POST(new Request("http://127.0.0.1:3737/api/orders", { method: "POST", body: raw ? (body as string) : JSON.stringify(body) }), {});
 const del = (id: string) =>
   DELETE(new Request(`http://127.0.0.1:3737/api/orders/${id}`, { method: "DELETE" }), { params: Promise.resolve({ id }) });
 

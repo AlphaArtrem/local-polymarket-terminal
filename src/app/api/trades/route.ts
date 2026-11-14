@@ -1,9 +1,10 @@
 import { cursorQuery, getTrades, parseQuery, respond } from "@/server/portfolio";
+import { withAccount } from "@/server/account/with-account";
 
 export const dynamic = "force-dynamic";
 
-export async function GET(request: Request) {
+export const GET = withAccount(async (request: Request) => {
   const query = parseQuery(request, cursorQuery);
   if (!query.ok) return query.response;
   return respond(() => getTrades(query.data.cursor));
-}
+});

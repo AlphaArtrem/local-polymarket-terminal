@@ -1,9 +1,10 @@
 import { jsonError } from "@/lib/http";
 import { getAccessStatus } from "@/server/access";
+import { withAccount } from "@/server/account/with-account";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export const GET = withAccount(async () => {
   try {
     return Response.json(await getAccessStatus());
   } catch (err) {
@@ -11,4 +12,4 @@ export async function GET() {
     const message = err instanceof Error ? err.message : "Unexpected error";
     return jsonError(500, "CONFIG_ERROR", message);
   }
-}
+}, { optional: true });

@@ -1,17 +1,27 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { RateLimitError } from "@polymarket/client";
+import { RateLimitError, WalletType } from "@polymarket/client";
 
 // The SDK client is mocked: these tests never submit an on-chain approval.
 const fetchTradingApprovalsState = vi.fn();
 const setupTradingApprovals = vi.fn();
-const getSecureClient = vi.fn(async () => ({ fetchTradingApprovalsState, setupTradingApprovals }));
+// Smart-wallet account that is gasless (matching relayer key): the pre-Phase-10 behaviour.
+const account = { signer: "0x" + "1".repeat(40), walletType: WalletType.POLY_PROXY };
+const getSecureClient = vi.fn(async () => ({ account, fetchTradingApprovalsState, setupTradingApprovals }));
+let gasless = true;
 
-let relayer: { key: string; address: string } | undefined = { key: "test-relayer-key", address: "0x" + "1".repeat(40) };
-vi.mock("@/server/env", () => ({ getEnv: () => ({ relayer }) }));
+vi.mock("@/server/env", () => ({ getEnv: () => ({ polygonRpcUrl: "https://rpc.invalid" }) }));
+vi.mock("@/server/account/with-account", () => ({ withAccount: (h: unknown) => h }));
+vi.mock("@/lib/polymarket-core", async (orig) => ({ ...(await orig<object>()), fetchPolBalance: vi.fn(async () => "1.0") }));
 
 vi.mock("@/server/polymarket", () => {
   class NotConfiguredError extends Error {}
-  return { NotConfiguredError, getSecureClient };
+  class WalletNotConnectedError extends NotConfiguredError {}
+  return {
+    NotConfiguredError,
+    WalletNotConnectedError,
+    getSecureClient,
+    getCurrentAccountExtras: async () => ({ source: "env", gasless, relayerMismatch: false }),
+  };
 });
 
 const { GET, POST } = await import("@/app/api/approvals/route");
@@ -19,6 +29,9 @@ const approvals = await import("@/server/approvals");
 const sleep = vi.fn(async () => undefined);
 approvals.setSleepForTests(sleep);
 const { NotConfiguredError } = await import("@/server/polymarket");
+
+const get = () => GET(new Request("http://127.0.0.1/api/approvals"), {});
+const post = () => POST(new Request("http://127.0.0.1/api/approvals", { method: "POST" }), {});
 
 const missingState = {
   isFullyApproved: false,
@@ -28,7 +41,8 @@ const approvedState = { isFullyApproved: true, missing: { erc20: [], erc1155: []
 
 beforeEach(() => {
   vi.clearAllMocks();
-  relayer = { key: "test-relayer-key", address: "0x" + "1".repeat(40) };
+  gasless = true;
+  account.walletType = WalletType.POLY_PROXY;
   vi.spyOn(console, "error").mockImplementation(() => undefined);
   vi.spyOn(console, "info").mockImplementation(() => undefined);
 });
@@ -36,15 +50,15 @@ beforeEach(() => {
 describe("GET /api/approvals", () => {
   it("reports missing approvals with a count", async () => {
     fetchTradingApprovalsState.mockResolvedValue(missingState);
-    const res = await GET();
+    const res = await get();
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ approved: false, missing: 3 });
+    expect(await res.json()).toEqual({ approved: false, missing: 3, path: "gasless", txCount: 1, polBalance: null });
     expect(setupTradingApprovals).not.toHaveBeenCalled();
   });
 
   it("returns 503 NOT_CONFIGURED without a key", async () => {
     getSecureClient.mockRejectedValueOnce(new NotConfiguredError());
-    const res = await GET();
+    const res = await get();
     expect(res.status).toBe(503);
     expect((await res.json()).error.code).toBe("NOT_CONFIGURED");
   });
@@ -54,9 +68,9 @@ describe("POST /api/approvals", () => {
   it("submits approvals when missing and returns the new state", async () => {
     fetchTradingApprovalsState.mockResolvedValueOnce(missingState).mockResolvedValueOnce(approvedState);
     setupTradingApprovals.mockResolvedValue(undefined);
-    const res = await POST();
+    const res = await post();
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ approved: true, missing: 0 });
+    expect(await res.json()).toEqual({ approved: true, missing: 0, path: "gasless", txCount: 0, polBalance: null });
     expect(setupTradingApprovals).toHaveBeenCalledTimes(1);
   });
 
@@ -67,34 +81,34 @@ describe("POST /api/approvals", () => {
       .mockResolvedValueOnce(missingState)
       .mockResolvedValueOnce(approvedState);
     setupTradingApprovals.mockResolvedValue(undefined);
-    const res = await POST();
-    expect(await res.json()).toEqual({ approved: true, missing: 0 });
+    const res = await post();
+    expect(await res.json()).toEqual({ approved: true, missing: 0, path: "gasless", txCount: 0, polBalance: null });
     expect(sleep).toHaveBeenCalledTimes(2);
   });
 
   it("gives up after the last re-read and reports what is still missing", async () => {
     fetchTradingApprovalsState.mockResolvedValue(missingState);
     setupTradingApprovals.mockResolvedValue(undefined);
-    const res = await POST();
-    expect(await res.json()).toEqual({ approved: false, missing: 3 });
+    const res = await post();
+    expect(await res.json()).toEqual({ approved: false, missing: 3, path: "gasless", txCount: 1, polBalance: null });
     expect(sleep).toHaveBeenCalledTimes(approvals.RECHECK_ATTEMPTS - 1);
   });
 
   it("returns 400 RELAYER_KEY_REQUIRED without a relayer key, submitting nothing", async () => {
-    relayer = undefined;
+    gasless = false;
     fetchTradingApprovalsState.mockResolvedValue(missingState);
-    const res = await POST();
+    const res = await post();
     expect(res.status).toBe(400);
     const body = await res.json();
     expect(body.error.code).toBe("RELAYER_KEY_REQUIRED");
-    expect(body.error.message).toContain("POLYMARKET_RELAYER_API_KEY");
+    expect(body.error.message).toContain("polymarket.com");
     expect(setupTradingApprovals).not.toHaveBeenCalled();
   });
 
   it("does nothing when already approved", async () => {
     fetchTradingApprovalsState.mockResolvedValue(approvedState);
-    const res = await POST();
-    expect(await res.json()).toEqual({ approved: true, missing: 0 });
+    const res = await post();
+    expect(await res.json()).toEqual({ approved: true, missing: 0, path: "gasless", txCount: 0, polBalance: null });
     expect(setupTradingApprovals).not.toHaveBeenCalled();
   });
 
@@ -102,8 +116,8 @@ describe("POST /api/approvals", () => {
     fetchTradingApprovalsState.mockResolvedValueOnce(missingState).mockResolvedValue(approvedState);
     let release: () => void = () => undefined;
     setupTradingApprovals.mockReturnValue(new Promise<void>((r) => (release = r)));
-    const first = POST();
-    const second = POST();
+    const first = post();
+    const second = post();
     await vi.waitFor(() => expect(setupTradingApprovals).toHaveBeenCalled());
     release();
     await Promise.all([first, second]);
@@ -113,7 +127,7 @@ describe("POST /api/approvals", () => {
   it("maps SDK rate limits to 429", async () => {
     fetchTradingApprovalsState.mockResolvedValue(missingState);
     setupTradingApprovals.mockRejectedValue(Object.create(RateLimitError.prototype));
-    const res = await POST();
+    const res = await post();
     expect(res.status).toBe(429);
     expect((await res.json()).error.code).toBe("RATE_LIMITED");
   });

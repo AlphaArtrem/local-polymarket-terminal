@@ -1,10 +1,10 @@
 # Local Polymarket Terminal
 
 A local trading terminal for Polymarket. It runs on your machine at `http://127.0.0.1:3737`,
-uses Polymarket's public APIs through the official SDK, and signs with your own wallet key kept
-in a local env file.
+uses Polymarket's public APIs through the official SDK, and signs with a browser wallet you
+connect or with your own key kept in a local env file.
 
-> **Status:** v1 live-tested with a real wallet, plus Browse (Phase 5), charts/live data (Phase 6) and redeem/cancel-all/alerts (Phase 7) and advanced orders (Phase 8). See [docs/state.md](docs/state.md).
+> **Status:** v1 live-tested with a real wallet, plus Browse (Phase 5), charts/live data (Phase 6), redeem/cancel-all/alerts (Phase 7), advanced orders (Phase 8) and browser-wallet signing (Phase 10). See [docs/state.md](docs/state.md).
 
 ## What it does
 
@@ -16,7 +16,7 @@ in a local env file.
   and a tape of recent trades; falls back to polling if the live stream drops.
 - **Trade**: limit and market orders with server-side safety checks; your open orders on an event
   appear under it with Cancel.
-- **Claim, cancel, alert**: Redeem winnings on resolved markets (needs the Relayer API key),
+- **Claim, cancel, alert**: Redeem winnings on resolved markets (gasless with a Relayer API key; EOA accounts pay POL),
   cancel all open orders (everywhere or on one event), and price alerts that notify you while the
   app is open (`/alerts`; stored only in your browser).
 - **Advanced orders**: limit orders that expire (GTD) or are post-only, and optional take-profit /
@@ -43,75 +43,193 @@ you close existing positions but not open new ones. It does not try to work arou
 
 ## Setup
 
-You need a Polymarket account. The terminal trades as that account; it does not create one.
+You need a Polymarket account, or a wallet you are happy to trade from as a plain account. The
+terminal trades as that account; it does not create one. Fuller documentation will come later;
+this README covers what you need to run it.
 
-### 1. Install
+### Run locally
 
 ```bash
 nvm install 24 && nvm use      # Node 24 is required by the SDK
-npm install
+npm ci
 cp .env.example .env.local     # .env.local is git-ignored; never commit it
+chmod 600 .env.local
+npm run build && npm run start # http://127.0.0.1:3737
 ```
 
-### 2. Fill in `.env.local`
+`npm run dev` also works for development. Then pick how you sign (next section).
 
-| Variable | Required | What it is and where to get it |
+### Two ways to sign
+
+The app is in **key mode** when `POLYMARKET_PRIVATE_KEY` is set and in **wallet mode** when it is
+blank. The two are exclusive: in key mode the Connect button is hidden and `POST /api/wallet/session`
+answers 409 `KEY_MODE`.
+
+**A. Connect a browser wallet (default, no key on disk).** Leave `POLYMARKET_PRIVATE_KEY` blank,
+open the app and click **Connect wallet**. Wallets that announce themselves through EIP-6963 are
+listed (MetaMask, Phantom, Rabby, Trust, Coinbase and similar extensions; mobile wallets and
+WalletConnect are not supported). Use Polygon.
+
+- You sign **Sign in to Polymarket** once per session. It proves you own the address and gives
+  the server Polymarket API credentials, which stay in server memory, tied to an HttpOnly cookie.
+  It is not a transaction and costs nothing.
+- Later prompts are real: each **order** is a typed-data signature, and each approval or redeem on
+  an EOA account is a transaction that costs POL. Read the prompt; the app shows what it asked for.
+- The server keeps one session (idle 12 h, at most 24 h). A restart ends it; reconnect. If you
+  close the tab mid-order, the server may still post it: check Open orders before retrying.
+- Rejecting a prompt shows "Request rejected in the wallet." and changes nothing.
+
+**B. Server key.** Set `POLYMARKET_PRIVATE_KEY` (`0x` + 64 hex) in `.env.local`. The server signs
+everything and the key never reaches the browser. The account wallet is found automatically from
+the key; `POLYMARKET_WALLET_ADDRESS` is only an optional override. **Automation (take-profit,
+stop-loss, TWAP) needs this mode**, because it runs while no browser is connected.
+
+### Account types
+
+The app trades as one account wallet. How it is found, and how gas works, depend on its type:
+
+| Type | What it is | Approvals and redeem |
 | - | - | - |
-| `POLYMARKET_PRIVATE_KEY` | to see your wallet or trade | The private key of the wallet you sign in to Polymarket with (`0x` + 64 hex). With MetaMask or another external wallet, export it from that wallet. With an email or Google login, use the private-key export in your Polymarket account settings. |
-| `POLYMARKET_WALLET_ADDRESS` | with the key | Your Polymarket **account wallet**, shown in the polymarket.com profile menu. It is usually different from the key's own address. If the website is unavailable to you, look it up from the key's address: `curl "https://gamma-api.polymarket.com/public-profile?address=<key address>"` and use `proxyWallet`. |
-| `POLYMARKET_RELAYER_API_KEY` | to enable trading | Needed once, for the gasless **Enable trading** approval (and later wallet operations). See step 3. |
-| `POLYMARKET_RELAYER_API_KEY_ADDRESS` | with the relayer key | The **Signer Address** shown next to that key. |
-| `POLYGON_RPC_URL` | no | Polygon JSON-RPC used for wallet operations. Default `https://polygon-bor-rpc.publicnode.com`. It must accept JSON-RPC batches of more than 10 requests; the SDK's built-in default (`polygon.drpc.org`, free tier) does not. |
+| EOA | Your signer address itself | Sent as normal transactions: **you pay POL**. Keep about 0.2 POL on the signer; the app refuses to start below 0.02 POL. Up to 17 transactions, one wallet prompt each. |
+| Safe | Created for MetaMask-style logins on polymarket.com | Gasless, but only with a relayer key that matches the signer. Otherwise do it on polymarket.com. |
+| Deposit Wallet | Accounts created on polymarket.com since 2026-05-04 | Same as Safe. |
+
+In wallet mode the account chip in the header shows the wallet type and the **source**:
+`profile` (found through the Polymarket profile of the signer), `chosen` (the "Account wallet"
+field) or `default` (no profile, so the address itself is the account). In key mode,
+`npm run doctor` prints the same, with `env` meaning your `POLYMARKET_WALLET_ADDRESS` override.
+The Deposit dialog always names the account wallet it credits. **An address that has never used Polymarket
+trades as a plain EOA account.** That is a new, separate account, not a Polymarket website
+account, so check the chip before you deposit. To trade as a different wallet, use the override
+(key mode: `POLYMARKET_WALLET_ADDRESS`; wallet mode: the "Account wallet (advanced)" field in the
+Connect dialog). The app never deploys a Deposit Wallet for you: if the account wallet is a
+smart wallet that is not deployed yet, finish setup on polymarket.com.
+
+### Fill in `.env.local`
+
+| Variable | Required | What it is |
+| - | - | - |
+| `POLYMARKET_PRIVATE_KEY` | key mode only | Signer key. Leave blank for wallet mode. Export it from your wallet, or from your Polymarket account settings for an email or Google login. |
+| `POLYMARKET_WALLET_ADDRESS` | no | Override of the account wallet (key mode only). Normally found automatically. |
+| `POLYMARKET_RELAYER_API_KEY` | no | Makes approvals and redeem gasless. See below. |
+| `POLYMARKET_RELAYER_API_KEY_ADDRESS` | with the relayer key | The **Signer Address** shown next to that key. Set both or neither. |
+| `POLYGON_RPC_URL` | no | Polygon JSON-RPC for wallet operations. Default `https://polygon-bor-rpc.publicnode.com`. It must accept batches of more than 10 requests; the SDK's built-in default does not. |
 | `MAX_ORDER_USDC` | no | Server-side cap per buy, in pUSD. Default 25. |
-| `AUTOMATION_ENABLED` | no | `true` turns on take-profit/stop-loss and TWAP rules, which place orders **without asking again**. Default off. |
+| `AUTOMATION_ENABLED` | no | `true` turns on take-profit/stop-loss and TWAP rules, which place orders **without asking again**. Key mode only. Default off. |
 | `AUTOMATION_FILE` | no | Where rules are saved. Default `.data/automation.json` (gitignored). |
 | `PORT` | no | Default 3737. The server only listens on 127.0.0.1. |
 
-### 3. Create a Relayer API key
+### Relayer API key (optional)
 
-Polymarket accounts use smart wallets, so approving the exchange to use your funds is a gasless
-transaction sent through Polymarket's relayer. The SDK refuses to send it without a Relayer API key.
+A relayer key makes approvals and redeem gasless. It is optional:
 
-1. Sign in at polymarket.com and open **Settings → API Keys → Relayer API Keys**.
-2. Create a key.
-3. Copy the **API Key** into `POLYMARKET_RELAYER_API_KEY` and the **Signer Address** shown with it
-   into `POLYMARKET_RELAYER_API_KEY_ADDRESS`.
-4. Restart the terminal (`npm run dev`) so it reads the new values.
+- **With it**, those operations cost no POL, for every account type. The key's Signer Address
+  should match your signer.
+- **Without it**, EOA accounts pay POL (see the table). Safe and Deposit Wallet accounts cannot
+  enable trading or redeem from this app; do that on polymarket.com (accounts made there usually
+  have their approvals already) or add a key.
+- A key-mode **EOA** account uses the POL path even if a relayer key is set.
 
-Treat the relayer key like a password: keep it only in `.env.local`. The build check
-(`npm run check`) fails if it, or the private key, ever ends up in the browser bundle.
+To create one: sign in at polymarket.com, open **Settings → API Keys → Relayer API Keys**, create a
+key, copy the **API Key** and the **Signer Address** into the two variables, and restart. Treat it
+like a password: keep it only in `.env.local`. `npm run check` fails if it, or the private key,
+ends up in the browser bundle.
 
-### 4. Check and run
+### Check and run
 
 ```bash
 npm run doctor   # read-only: location, wallet type, addresses, pUSD balance, close-only mode
-npm run dev      # http://127.0.0.1:3737
+npm run start    # http://127.0.0.1:3737
 ```
 
-### 5. Fund the wallet
+`npm run doctor` needs a private key in `.env.local`; in wallet mode, check the access badge and
+the account chip in the app instead.
 
-Send funds through Polymarket's bridge, not to the wallet address directly. The easiest way:
-**Portfolio → Deposit** shows your bridge address for USDC or USDC.e on Polygon, with the current
-minimum (the app only fetches the address; it never sends funds). Or get all your deposit
+### Fund the account
+
+Send funds through Polymarket's bridge, not to the wallet address directly. **Portfolio →
+Deposit** shows your bridge address for USDC or USDC.e on Polygon with the current minimum, a **QR
+code** of exactly that address (black on white so it scans in any theme), and the account it
+credits. The app only fetches the address; it never sends funds. Or get all your deposit
 addresses yourself:
 
 ```bash
 curl -X POST https://bridge.polymarket.com/deposit \
   -H 'Content-Type: application/json' \
-  -d '{"address":"<POLYMARKET_WALLET_ADDRESS>"}'
+  -d '{"address":"<account wallet>"}'
 ```
 
 Send a supported token to the matching address (`evm` for Polygon, Arbitrum, Base, Ethereum and
 other EVM chains; `svm` for Solana; `btc`; `tron`). USDC on Polygon has a $2 minimum; check
 `https://bridge.polymarket.com/supported-assets` for the current list and minimums before sending.
-It arrives as pUSD, usually within minutes; `npm run doctor` shows the balance.
+It arrives as pUSD, usually within minutes.
 
-### 6. Enable trading (once per wallet)
+### Enable trading (once per wallet)
 
 A new wallet cannot trade until it approves the exchange to use its pUSD and outcome tokens. The
 dashboard shows **Trading is not enabled on this wallet yet** until then. Click **Enable
-trading**, review, confirm. It is gasless, places no order, and takes about 10 seconds; the
-approval state can take a few more seconds to update.
+trading**, review, confirm. With a relayer key it is gasless and takes about 10 seconds. On an EOA
+without one, your wallet asks you to confirm each transaction and you pay POL; if it stops partway
+(out of POL, or you reject one), run it again and only the missing approvals are sent. The
+approval state can take a few seconds to update.
+
+### Run on a VPS (AWS EC2 example)
+
+**Read this first.** Polymarket sees the VPS's IP address, not yours. Use a region where you are
+allowed to trade from where you actually are. Never use a VPS to get around a restriction: that
+breaches Polymarket's terms and this app does not support it. The access badge shows the VPS
+location, and a close-only or blocked country applies to the VPS.
+
+1. Launch an Ubuntu 24.04 instance. Security group inbound: **only TCP 22 from your IP**. Never
+   open 3737.
+2. Create a user and install the app:
+
+   ```bash
+   sudo adduser --disabled-password pmterm
+   sudo -iu pmterm
+   # install nvm (see nvm's README), then:
+   nvm install 24
+   git clone <this repository> app && cd app
+   npm ci && npm run build
+   cp .env.example .env.local && chmod 600 .env.local
+   ```
+
+3. Edit `.env.local` as `pmterm`. Prefer wallet mode on a VPS, so no key lives there. If you use a
+   key, make it a dedicated wallet with a low balance.
+4. Create `/etc/systemd/system/pmterm.service`:
+
+   ```ini
+   [Unit]
+   Description=Local Polymarket terminal
+   After=network-online.target
+
+   [Service]
+   User=pmterm
+   WorkingDirectory=/home/pmterm/app
+   Environment=NODE_ENV=production PORT=3737
+   ExecStart=/bin/bash -lc 'source ~/.nvm/nvm.sh && nvm use 24 >/dev/null && exec npm run start'
+   Restart=on-failure
+   NoNewPrivileges=true
+   PrivateTmp=true
+
+   [Install]
+   WantedBy=multi-user.target
+   ```
+
+   Then `sudo systemctl enable --now pmterm` and `journalctl -u pmterm -f`.
+5. From your computer, open a tunnel and browse locally:
+
+   ```bash
+   ssh -N -L 3737:127.0.0.1:3737 pmterm@<host>
+   # then open http://127.0.0.1:3737
+   ```
+
+   The local port **must equal `PORT`**, or the Host check answers 403. Your wallet extension
+   signs on your computer; the VPS sends the orders.
+6. Update with `git pull && npm ci && npm run build && sudo systemctl restart pmterm`. Wallet
+   sessions end on restart; reconnect.
+7. Automation (key mode only) keeps running while you are disconnected. Every restart begins
+   paused; resume it on `/automation`.
 
 ## Trading
 
@@ -188,8 +306,13 @@ that start like a spreadsheet formula get a leading `'`.
 
 | Symptom | Cause and fix |
 | - | - |
-| Doctor: `POLYMARKET_WALLET_ADDRESS: required when POLYMARKET_PRIVATE_KEY is set` | Add the account wallet address (setup step 2). |
-| Enable trading: `RELAYER_KEY_REQUIRED` | Create the Relayer API key (setup step 3) and restart. |
+| API answers 401 `WALLET_NOT_CONNECTED` | Wallet mode, no session: click Connect wallet. |
+| 409 `KEY_MODE` on connect | A private key is set, so the server signs; blank it to use a browser wallet. |
+| 409 `NEEDS_POL` | The signer has under 0.02 POL for an EOA transaction; add POL. |
+| 403 `AUTOMATION_NEEDS_KEY` | Automation needs `POLYMARKET_PRIVATE_KEY`. |
+| 409 `OP_IN_PROGRESS` | A wallet operation is already waiting for your confirmation. |
+| Connect: 403 `USER_REJECTED`, 503 `ACCOUNT_LOOKUP_FAILED`, 409 `WALLET_CONFIG`, 500 `CONNECT_FAILED` | You rejected the prompt; Polymarket's profile lookup failed (retry); the account wallet is misconfigured; or sign-in failed. |
+| Enable trading: `RELAYER_KEY_REQUIRED` | Add a Relayer API key (see Relayer API key) and restart, or enable trading on polymarket.com. |
 | Enable trading: `Polymarket request failed`, log mentions an RPC `status 400` | `POLYGON_RPC_URL` points at an RPC that rejects large batches; use the default or another provider. |
 | Balance 0 after a deposit | Check `https://bridge.polymarket.com/status/<your evm deposit address>`; deposits below the minimum are not processed. |
 | Badge shows close-only | Your connection is in a country where Polymarket's API allows closing positions only. Turn any VPN off. |

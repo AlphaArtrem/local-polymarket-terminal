@@ -1,7 +1,6 @@
 import { getAccount, respond } from "@/server/portfolio";
+import { withAccount } from "@/server/account/with-account";
 
 export const dynamic = "force-dynamic";
 
-export function GET() {
-  return respond(getAccount);
-}
+export const GET = withAccount(() => respond(getAccount));

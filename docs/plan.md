@@ -2,7 +2,7 @@
 
 A local Polymarket trading terminal: a website-like UI on `127.0.0.1` that talks to Polymarket's
 public APIs with the user's own wallet. All phases are built; [state.md](state.md) says what
-exists. **Phases 0–9 are done; no further phase is planned.**
+exists. **Phases 0–10 are done; no further phase is planned.**
 
 Each phase ends in a **demonstration**, not just green tests. Slices are sized for one
 implementer agent each, with explicit file ownership so parallel slices never touch the same file.
@@ -473,6 +473,32 @@ Deposit shows a checksummed bridge address that differs from both the wallet and
 
 ---
 
+## Phase 10 — Browser wallet, optional keys, deposit QR, VPS docs (done 2026-11-15)
+
+**Goal:** trade without a private key on disk, with the account found automatically, and run the
+app on a VPS safely.
+
+**Slices (S0 first, then S1–S5, S6 last):**
+
+- **S0 — shared contract.** Wallet protocol types and error codes (`src/lib/wallet-protocol.ts`).
+- **S1 — env, account resolution, key mode.** Optional key, wallet address and relayer key;
+  account wallet from the profile (404 only falls back to EOA); explicit `wallet` on every
+  `createSecureClient`; account context.
+- **S2 — BridgeSigner, operations, session.** Server session with in-memory L2 credentials, an
+  allowlisted signing relay to the browser, `/api/wallet/{session,ops}`.
+- **S3 — routes by account type.** Approvals, redeem and deposit by account type (POL path for
+  EOA); automation in key mode only.
+- **S4 — browser wallet UI.** EIP-6963 discovery, Connect dialog, signing loop, gating.
+- **S5 — deposit QR.** `uqr` in the Deposit dialog.
+- **S6 — docs.** README (two ways to sign, account types, VPS), changelog, state, hazards H17–H23,
+  facts F31–F41.
+
+**Accept:** wallet mode without a key returns 401 `WALLET_NOT_CONNECTED` and the UI asks to connect;
+key mode with the existing `.env.local` resolves the same account; `npm run check` passes and no SDK
+code is in `.next/static`. The user does the live checks listed in state.md.
+
+---
+
 ## Later phases
 
-None planned. Candidates: trailing stops, order book depth chart, multi-account, a deposit QR code.
+None planned. Candidates: trailing stops, order book depth chart, multi-account, WalletConnect.

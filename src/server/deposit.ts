@@ -1,5 +1,5 @@
 import "server-only";
-import { WalletType } from "@polymarket/client";
+import { SignerType, WalletType } from "@polymarket/client";
 import { jsonError } from "@/lib/http";
 import { EnvError } from "@/lib/parse-env";
 import {
@@ -12,8 +12,8 @@ import {
   type DepositInfo,
   type PolygonMinimum,
 } from "@/lib/deposit";
-import { getEnv } from "./env";
-import { getSecureClient, NotConfiguredError } from "./polymarket";
+import { accountError } from "./orders/errors";
+import { getSecureClient } from "./polymarket";
 
 /**
  * Read-only: asks Polymarket's bridge for the deposit address of the account wallet. The app never
@@ -64,10 +64,11 @@ async function fetchEvm(wallet: string): Promise<string> {
 export async function getDepositInfo(): Promise<DepositInfo> {
   const client = await getSecureClient();
   const { signer, wallet, walletType } = client.account;
-  const envWallet = getEnv().walletAddress;
+  // Never deposit to an address the bridge could not credit: a smart-wallet type whose wallet is the
+  // signer itself, or an account whose wallet was not derived from this signer.
   const sameAsSigner = wallet.toLowerCase() === signer.toLowerCase();
-  if ((walletType !== WalletType.EOA && sameAsSigner) || wallet.toLowerCase() !== envWallet?.toLowerCase()) {
-    throw new DepositError(409, "WALLET_CONFIG", "Account wallet does not match the configured wallet; check .env.local");
+  if (client.account.signerType === SignerType.SESSION_KEY || (walletType !== WalletType.EOA && sameAsSigner)) {
+    throw new DepositError(409, "WALLET_CONFIG", "Account wallet does not match the connected signer; check the account wallet setting");
   }
   const evm = await fetchEvm(wallet);
   const minimums = await fetchMinimums();
@@ -78,9 +79,8 @@ export async function respondDeposit(): Promise<Response> {
   try {
     return Response.json(await getDepositInfo(), { headers: { "Cache-Control": "no-store" } });
   } catch (err) {
-    if (err instanceof NotConfiguredError) {
-      return jsonError(503, "NOT_CONFIGURED", "Set POLYMARKET_PRIVATE_KEY and POLYMARKET_WALLET_ADDRESS in .env.local");
-    }
+    const mapped = accountError(err);
+    if (mapped) return mapped;
     if (err instanceof EnvError) return jsonError(500, "CONFIG_ERROR", err.message);
     if (err instanceof DepositError) return jsonError(err.status, err.code, err.message);
     console.error("deposit request failed:", err instanceof Error ? err.name : "unknown");

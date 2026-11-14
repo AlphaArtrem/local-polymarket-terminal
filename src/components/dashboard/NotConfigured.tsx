@@ -7,8 +7,8 @@ export function NotConfigured() {
       <strong>Wallet not configured</strong>
       <p>
         Create <code>.env.local</code> in the project root and set <code>POLYMARKET_PRIVATE_KEY</code> (the
-        signer key) and <code>POLYMARKET_WALLET_ADDRESS</code> (the wallet address shown in your polymarket.com
-        profile menu), then restart the dev server.
+        signer key), then restart the dev server. <code>POLYMARKET_WALLET_ADDRESS</code> is an optional override for
+        the wallet address. Without a key, the app runs in browser-wallet mode and you connect an extension instead.
       </p>
       <p className="muted">The key is read only by the local server and never sent to the browser.</p>
     </div>

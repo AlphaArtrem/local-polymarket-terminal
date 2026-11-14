@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+- Phase 10: connect a browser wallet instead of keeping a key on disk. With `POLYMARKET_PRIVATE_KEY` blank the app is in wallet mode: pick an EIP-6963 wallet, sign "Sign in to Polymarket" once, then the browser signs each order and transaction while the server keeps the session and API credentials in memory (HttpOnly cookie, one session, one operation at a time). Key mode is unchanged; the two are exclusive. New routes `/api/wallet/{session,ops}`; new error codes `WALLET_NOT_CONNECTED` (401), `NEEDS_POL` (409), `AUTOMATION_NEEDS_KEY` (403), `KEY_MODE` (409), `OP_IN_PROGRESS` (409), `USER_REJECTED` (403), `ACCOUNT_LOOKUP_FAILED` (503), `CONNECT_FAILED` (500).
+- `POLYMARKET_WALLET_ADDRESS` is now optional: the account wallet is found from the key's Polymarket profile, else the key's own address as a plain EOA account. The source is shown in the header and the Deposit dialog. The app never deploys a Deposit Wallet implicitly.
+- `POLYMARKET_RELAYER_API_KEY` is now optional. Without it, EOA accounts pay POL for Enable trading and Redeem (about 0.2 POL recommended, 0.02 minimum); Safe and Deposit Wallet accounts do those on polymarket.com. Key-mode EOA accounts use the POL path even when a relayer key is set.
+- Automation (take-profit, stop-loss, TWAP) works in key mode only.
+- Deposit dialog shows a QR code of the bridge address (`uqr`, black on white; round-trip tested with `jsqr`, a dev dependency).
+- The root layout is now rendered per request, because the signing mode is read at request time.
+- README: two ways to sign, account types, relayer key guidance, and a VPS guide (AWS EC2, SSH tunnel, systemd) with a jurisdiction warning.
 - Phase 9 redesign: a dark trading-terminal look (graphite surfaces, mint Yes, coral No, Inter and JetBrains Mono from local font stacks), a new header with active nav, ⌘K hint, access chip, cash and wallet chips; three-column trade page (outcome rail with probability bars, chart, depth-bar order book, segmented ticket); browse with a featured event and card grid; portfolio with KPI tiles and tabs; restyled alerts and automation pages. The event page now opens on its top outcome.
 - Watchlist: star events and outcomes; a Browse sidebar card shows live prices and the change since starred (browser-only).
 - Keyboard shortcuts: ⌘K//, g-chords, b/s/y/n on the ticket, ? help with an on/off switch. Shortcuts never place or confirm orders and do nothing while a dialog is open.

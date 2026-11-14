@@ -6,11 +6,13 @@ import { RedeemButton } from "./RedeemButton";
 import styles from "./dashboard.module.css";
 import type { Page, PositionDto } from "./types";
 import { useApi } from "./useApi";
+import { useWallet } from "../wallet/useWallet";
 
 /** Notice listing resolved markets that can be claimed. Renders nothing when there are none. */
 export function RedeemBanner({ refreshToken, onRedeemed }: { refreshToken: number; onRedeemed?: () => void }) {
   const [localToken, setLocalToken] = useState(0);
-  const { data } = useApi<Page<PositionDto>>("/api/positions?status=OPEN", refreshToken + localToken);
+  const wallet = useWallet();
+  const { data } = useApi<Page<PositionDto>>("/api/positions?status=OPEN", refreshToken + localToken + wallet.version);
   // On any error (including NOT_CONFIGURED) `data` stays null and nothing renders.
   if (!data) return null;
 

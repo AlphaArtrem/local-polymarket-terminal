@@ -9,8 +9,10 @@ const getSecureClient = vi.fn(async (): Promise<object> => client);
 
 vi.mock("@/server/polymarket", () => {
   class NotConfiguredError extends Error {}
-  return { NotConfiguredError, getSecureClient };
+  class WalletNotConnectedError extends NotConfiguredError {}
+  return { NotConfiguredError, WalletNotConnectedError, getSecureClient };
 });
+vi.mock("@/server/account/with-account", () => ({ withAccount: (h: unknown) => h }));
 vi.mock("@/server/orders/place", () => ({ placeOrder: vi.fn() }));
 vi.mock("@/server/portfolio", () => ({ cursorQuery: {}, getOpenOrders: vi.fn(), parseQuery: vi.fn(), respond: vi.fn() }));
 vi.mock("@polymarket/client/actions", () => ({ cancelAll, cancelAllWalletOrders, cancelMarketOrders }));
@@ -20,7 +22,7 @@ const { NotConfiguredError } = await import("@/server/polymarket");
 
 const A = "0x" + "a".repeat(64);
 const B = "0x" + "b".repeat(64);
-const del = (query = "") => DELETE(new Request(`http://127.0.0.1:3737/api/orders${query}`, { method: "DELETE" }));
+const del = (query = "") => DELETE(new Request(`http://127.0.0.1:3737/api/orders${query}`, { method: "DELETE" }), {});
 const untouched = () => {
   expect(cancelAll).not.toHaveBeenCalled();
   expect(cancelAllWalletOrders).not.toHaveBeenCalled();

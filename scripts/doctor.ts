@@ -1,9 +1,11 @@
 // Read-only account and access status. Never places or signs orders. Never prints the key.
 import { existsSync } from "node:fs";
 import { EnvError, parseEnv } from "../src/lib/parse-env";
+import { WalletType } from "@polymarket/client";
 import {
   buildSecureClient,
   fetchGeoblock,
+  fetchPolBalance,
   fetchPusdBalance,
 } from "../src/lib/polymarket-core";
 
@@ -29,17 +31,22 @@ async function main(): Promise<number> {
     return 1;
   }
 
-  if (!env.privateKey || !env.walletAddress) {
-    console.log("wallet not configured (set POLYMARKET_PRIVATE_KEY and POLYMARKET_WALLET_ADDRESS in .env.local)");
+  if (!env.privateKey) {
+    console.log("mode: wallet (no POLYMARKET_PRIVATE_KEY) - connect a wallet in the browser");
+    if (env.walletAddress) console.log("warning: POLYMARKET_WALLET_ADDRESS is ignored in wallet mode");
     return 0;
   }
+  console.log("mode: key");
 
   try {
-    const client = await buildSecureClient(env);
+    const { client, source, gasless, relayerMismatch } = await buildSecureClient(env);
     const { walletType, signer, wallet } = client.account;
-    console.log(`wallet type: ${walletType}`);
+    console.log(`wallet source: ${source}`);
+    console.log(`wallet type: ${WalletType[walletType] ?? walletType}`);
     console.log(`signer: ${signer}`);
     console.log(`wallet: ${wallet}`);
+    console.log(`gasless: ${gasless}${relayerMismatch ? " (relayer key belongs to another address)" : ""}`);
+    console.log(`POL balance (signer): ${await fetchPolBalance(env.polygonRpcUrl, signer)}`);
     console.log(`pUSD balance: ${await fetchPusdBalance(client)}`);
     console.log(`close-only mode: ${await client.fetchClosedOnlyMode()}`);
   } catch (err) {

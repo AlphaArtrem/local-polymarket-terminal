@@ -3,13 +3,14 @@ import { jsonError } from "@/lib/http";
 import { cancelParams } from "@/server/orders/body";
 import { tradingError } from "@/server/orders/errors";
 import { getSecureClient } from "@/server/polymarket";
+import { withAccount } from "@/server/account/with-account";
 
 export const dynamic = "force-dynamic";
 
 type Context = { params: Promise<{ id: string }> };
 
 /** Cancels one open order. Same-Origin is enforced by middleware. */
-export async function DELETE(_request: Request, { params }: Context) {
+export const DELETE = withAccount(async (_request: Request, { params }: Context) => {
   const parsed = cancelParams.safeParse(await params);
   if (!parsed.success) return jsonError(400, "INVALID_ID", "Invalid order id");
   const { id } = parsed.data;
@@ -23,4 +24,4 @@ export async function DELETE(_request: Request, { params }: Context) {
   } catch (err) {
     return tradingError(err, "cancel");
   }
-}
+});

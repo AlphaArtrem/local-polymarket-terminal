@@ -4,6 +4,7 @@ import { AutomationNavLink } from "./automation/AutomationNavLink";
 import { AccessBadge } from "./AccessBadge";
 import { HeaderAccount } from "./HeaderAccount";
 import { NavLink } from "./NavLink";
+import { ConnectWallet } from "./wallet/ConnectWallet";
 import { SearchBar } from "./SearchBar";
 import { HelpButton } from "./shortcuts/HelpButton";
 import { SearchHint } from "./shortcuts/SearchHint";
@@ -39,6 +40,7 @@ export function Header() {
         <HelpButton />
         <AccessBadge />
         <HeaderAccount />
+        <ConnectWallet />
       </div>
     </header>
   );

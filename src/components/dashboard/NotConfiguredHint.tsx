@@ -1,3 +1,7 @@
+"use client";
+
+import { ConnectPrompt } from "../wallet/ConnectWallet";
+import { useWallet } from "../wallet/useWallet";
 import styles from "./dashboard.module.css";
 
 /**
@@ -5,6 +9,8 @@ import styles from "./dashboard.module.css";
  * the bundle scan forbids those names in browser code. The server-rendered `NotConfigured` has them.
  */
 export function NotConfiguredHint() {
+  const { mode } = useWallet();
+  if (mode === "wallet") return <ConnectPrompt />;
   return (
     <div className={styles.notice} data-testid="not-configured">
       <strong>Wallet not configured</strong>

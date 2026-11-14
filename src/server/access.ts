@@ -1,5 +1,6 @@
 import "server-only";
 import { fetchGeoblock, type Geoblock } from "@/lib/polymarket-core";
+import { accountContext } from "./account/context";
 import { getSecureClient, isConfigured } from "./polymarket";
 
 export type AccessStatus = {
@@ -18,7 +19,8 @@ function warn(what: string, err: unknown): void {
 export async function getAccessStatus(
   deps: { fetchGeoblock?: typeof fetchGeoblock } = {},
 ): Promise<AccessStatus> {
-  const configured = isConfigured();
+  // Key mode with a key, or a request that carries a connected browser wallet.
+  const configured = isConfigured() || accountContext.getStore() !== undefined;
 
   const geoblockPromise = (deps.fetchGeoblock ?? fetchGeoblock)().catch((err: unknown) => {
     warn("geoblock", err);

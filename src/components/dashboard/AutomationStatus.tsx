@@ -2,15 +2,21 @@
 
 import Link from "next/link";
 import { useAutomationState } from "../automation/useAutomation";
+import { useWallet } from "../wallet/useWallet";
 import styles from "./dashboard.module.css";
 
 /** Portfolio tile: engine on/off/paused and live rule count, via the existing automation hook. */
 export function AutomationStatus() {
   const { data, failure, loading } = useAutomationState(15_000);
+  const { mode } = useWallet();
 
   let value = "—";
   let sub = loading ? "Loading…" : (failure?.message ?? "Unavailable");
-  if (failure?.code === "AUTOMATION_DISABLED") {
+  if (mode === "wallet") {
+    // The engine needs a server-held signer; a browser wallet only signs while you are present.
+    value = "Off";
+    sub = "Needs a server-held key; not available with a browser wallet";
+  } else if (failure?.code === "AUTOMATION_DISABLED") {
     value = "Off";
     sub = "Switched off on this server";
   } else if (data) {

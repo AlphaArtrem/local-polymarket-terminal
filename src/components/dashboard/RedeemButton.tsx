@@ -6,11 +6,13 @@ import { formatShares, formatUsd, shortHash } from "@/lib/format";
 import { ConfirmDialog } from "../ConfirmDialog";
 import styles from "./dashboard.module.css";
 import type { ApiErrorBody, PositionDto } from "./types";
+import { useWallet } from "../wallet/useWallet";
 
 type Done = { status: RedeemResult["status"]; txHash: string | null };
 
 /** Redeems one resolved market after an explicit confirmation (POST /api/redeem). */
 export function RedeemButton({ position, onDone }: { position: PositionDto; onDone?: () => void }) {
+  const wallet = useWallet();
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -20,7 +22,7 @@ export function RedeemButton({ position, onDone }: { position: PositionDto; onDo
     setBusy(true);
     setError(null);
     try {
-      const res = await fetch("/api/redeem", {
+      const res = await wallet.fetch("/api/redeem", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ conditionId: position.conditionId }),
@@ -62,6 +64,7 @@ export function RedeemButton({ position, onDone }: { position: PositionDto; onDo
             { label: "Outcome", value: position.outcome ?? "—" },
             { label: "Shares", value: formatShares(position.size) },
             { label: "Value", value: formatUsd(position.currentValue) },
+            ...(wallet.mode === "wallet" ? [{ label: "Signing", value: "You confirm each request in your wallet" }] : []),
           ]}
           confirmLabel="Redeem"
           busyLabel="Redeeming…"

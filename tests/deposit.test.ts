@@ -12,21 +12,22 @@ const WALLET = "0x2222222222222222222222222222222222222222";
 
 const state = vi.hoisted(() => ({
   configured: true,
-  account: { signer: "", wallet: "", walletType: 0 },
-  envWallet: "" as string | undefined,
+  account: { signer: "", wallet: "", walletType: 0, signerType: "OWNER" },
 }));
 
 vi.mock("@/server/polymarket", () => {
   class NotConfiguredError extends Error {}
+  class WalletNotConnectedError extends NotConfiguredError {}
   return {
     NotConfiguredError,
+    WalletNotConnectedError,
     getSecureClient: vi.fn(async () => {
       if (!state.configured) throw new NotConfiguredError();
       return { account: state.account };
     }),
   };
 });
-vi.mock("@/server/env", () => ({ getEnv: () => ({ walletAddress: state.envWallet }) }));
+vi.mock("@/server/account/with-account", () => ({ withAccount: (h: unknown) => h }));
 
 const fetchMock = vi.fn();
 vi.stubGlobal("fetch", fetchMock);
@@ -45,14 +46,13 @@ function mockBridge(opts: { deposit?: unknown; assets?: "fail" | unknown } = {})
 
 async function post() {
   const { POST } = await import("@/app/api/deposit/route");
-  return POST();
+  return POST(new Request("http://127.0.0.1/api/deposit", { method: "POST" }), {});
 }
 
 beforeEach(() => {
   fetchMock.mockReset();
   state.configured = true;
-  state.account = { signer: SIGNER, wallet: WALLET, walletType: WalletType.POLY_PROXY };
-  state.envWallet = WALLET;
+  state.account = { signer: SIGNER, wallet: WALLET, walletType: WalletType.POLY_PROXY, signerType: "OWNER" };
 });
 
 describe("POST /api/deposit", () => {
@@ -77,17 +77,18 @@ describe("POST /api/deposit", () => {
 
   it("409 when a non-EOA wallet equals the signer", async () => {
     mockBridge();
-    state.account = { signer: SIGNER, wallet: SIGNER, walletType: WalletType.POLY_PROXY };
-    state.envWallet = SIGNER;
+    state.account = { signer: SIGNER, wallet: SIGNER, walletType: WalletType.POLY_PROXY, signerType: "OWNER" };
     const res = await post();
     expect(res.status).toBe(409);
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("409 when the account wallet differs from the env wallet", async () => {
+  it("409 WALLET_CONFIG for a SESSION_KEY account", async () => {
     mockBridge();
-    state.envWallet = "0x3333333333333333333333333333333333333333";
-    expect((await post()).status).toBe(409);
+    state.account = { ...state.account, signerType: "SESSION_KEY" };
+    const res = await post();
+    expect(res.status).toBe(409);
+    expect(((await res.json()) as { error: { code: string } }).error.code).toBe("WALLET_CONFIG");
     expect(fetchMock).not.toHaveBeenCalled();
   });
 

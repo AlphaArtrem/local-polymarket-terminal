@@ -4,15 +4,17 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // Nothing here reaches the SDK or the network: orders, positions and prices are mocked.
-const env = { automationEnabled: true, automationFile: "", maxOrderUsdc: 25 };
+const env = { privateKey: "k" as string | undefined, automationEnabled: true, automationFile: "", maxOrderUsdc: 25 };
 vi.mock("@/server/env", () => ({ getEnv: () => env }));
 
 let configured = true;
+const getEnvSecureClient = vi.fn(async () => ({ account: { wallet: "0xw" } }));
 const publicClient = { fetchMidpoints: vi.fn() };
 vi.mock("@/server/polymarket", () => ({
   isConfigured: () => configured,
   getPublicClient: () => publicClient,
-  getSecureClient: async () => ({ account: { wallet: "0xw" } }),
+  getEnvSecureClient,
+  getSecureClient: async () => ({ account: { wallet: "0xbrowser" } }),
   NotConfiguredError: class extends Error {},
 }));
 const placeOrder = vi.fn();
@@ -39,6 +41,7 @@ beforeEach(async () => {
   env.automationEnabled = true;
   env.automationFile = join(dir, "a.json");
   configured = true;
+  env.privateKey = "k";
   vi.clearAllMocks();
   publicClient.fetchMidpoints.mockResolvedValue({ "123": "0.5" });
   listPositions.mockReturnValue({ firstPage: async () => ({ items: [{ assetId: "123", currentSize: "42" }] }) });
@@ -68,11 +71,30 @@ describe("gates", () => {
     }
   });
 
-  it("returns 400 NOT_CONFIGURED without a key", async () => {
-    configured = false;
-    const res = await list.GET();
-    expect(res.status).toBe(400);
-    expect(await code(res)).toBe("NOT_CONFIGURED");
+  it("returns 403 AUTOMATION_NEEDS_KEY in wallet mode on every route", async () => {
+    env.privateKey = undefined;
+    const responses = [
+      await list.GET(),
+      await rules.POST(post("/api/automation/rules", tpsl())),
+      await one.DELETE(new Request("http://x", { method: "DELETE" }), ctx("abc")),
+      await control.POST(post("/api/automation/control", { action: "pause" })),
+    ];
+    for (const res of responses) {
+      expect(res.status).toBe(403);
+      expect(await code(res)).toBe("AUTOMATION_NEEDS_KEY");
+    }
+  });
+
+  it("the engine's place call and heldSize use the env client even inside a wallet-session context", async () => {
+    const { runWithAccount } = await import("@/server/account/context");
+    const { enginePlaceOrder, heldSize } = await import("@/server/automation/runtime");
+    const browser = { account: { wallet: "0xbrowser" } } as never;
+    await runWithAccount({ client: browser, info: { source: "user", gasless: false, relayerMismatch: false } }, async () => {
+      await enginePlaceOrder({} as never);
+      await heldSize("123", COND);
+    });
+    expect(placeOrder).toHaveBeenCalledWith({}, { getClient: getEnvSecureClient });
+    expect(getEnvSecureClient).toHaveBeenCalledTimes(1);
   });
 
   it("returns 500 AUTOMATION_STORE_CORRUPT naming the path, not the contents", async () => {

@@ -22,6 +22,8 @@ const schema = z
         .regex(/^0x[0-9a-fA-F]{64}$/, "must be 0x followed by 64 hex characters")
         .optional(),
     ),
+    // Optional override of the account wallet. Without it the wallet is resolved from the key
+    // (public profile, else the signer itself as an EOA).
     POLYMARKET_WALLET_ADDRESS: z.preprocess(
       blankToUndefined,
       z
@@ -62,10 +64,6 @@ const schema = z
         .max(65535, "must be 1-65535")
         .default(3737),
     ),
-  })
-  .refine((e) => !e.POLYMARKET_PRIVATE_KEY || e.POLYMARKET_WALLET_ADDRESS, {
-    path: ["POLYMARKET_WALLET_ADDRESS"],
-    message: "required when POLYMARKET_PRIVATE_KEY is set",
   })
   .refine((e) => Boolean(e.POLYMARKET_RELAYER_API_KEY) === Boolean(e.POLYMARKET_RELAYER_API_KEY_ADDRESS), {
     path: ["POLYMARKET_RELAYER_API_KEY_ADDRESS"],
