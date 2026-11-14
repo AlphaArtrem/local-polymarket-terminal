@@ -1,14 +1,37 @@
-.status { font-size: 11px; }
-.live { color: var(--pos); }
-.polling, .connecting { color: var(--muted); }
+/* Order book + trades cards (Main.dc.html). Both fill the height of their row. */
+.card { flex: 1 1 320px; min-width: 0; display: flex; flex-direction: column; padding: 10px 0; }
+.cardTape { flex-basis: 260px; }
+.head { display: flex; justify-content: space-between; align-items: center; padding: 0 14px 8px; }
+.lbl { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: #93a0ad; font-weight: 600; }
+.status { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; }
+.dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.live { color: #8fe3c4; }
+.polling, .connecting { color: #93a0ad; }
+.cols { display: grid; grid-template-columns: 1fr 1fr 1fr; padding: 4px 14px; font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: #93a0ad; font-weight: 600; }
+.num { text-align: right; }
+.muted { color: #93a0ad; }
+.empty { flex: 1; display: grid; place-items: center; text-align: center; padding: 24px; border-top: 1px solid #1a2027; color: #93a0ad; }
+.error { padding: 0 14px 8px; color: #ff8f73; }
+
+/* Book body */
+.bookBody { flex: 1; display: flex; flex-direction: column; justify-content: center; font-family: var(--font-num, "JetBrains Mono", ui-monospace, monospace); font-variant-numeric: tabular-nums; font-size: 12px; }
+.row { position: relative; display: grid; grid-template-columns: 1fr 1fr 1fr; padding: 3px 14px; }
+.row > span { position: relative; }
+.row > span:not(:first-of-type) { text-align: right; }
+.depth { position: absolute; right: 0; top: 1px; bottom: 1px; width: var(--depth, 0%); }
+.ask .depth { background: rgba(255, 122, 89, 0.12); }
+.bid .depth { background: rgba(79, 209, 165, 0.12); }
+.ask > span:first-of-type { color: #ff8f73; }
+.bid > span:first-of-type { color: #4fd1a5; }
+.mid { display: flex; justify-content: space-between; padding: 8px 14px; margin: 4px 0; background: #0e1216; border-top: 1px solid #1a2027; border-bottom: 1px solid #1a2027; }
+.mid strong { font-weight: 600; }
 .flash { animation: flash 600ms ease-out; }
-@keyframes flash { from { background: var(--surface-3); } to { background: transparent; } }
+@keyframes flash { from { background: #1e252d; } to { background: transparent; } }
 @media (prefers-reduced-motion: reduce) { .flash { animation: none; } }
-.tapeWrap { min-width: 0; padding: var(--s-3); }
-.tape { max-height: 280px; overflow-y: auto; font-family: var(--font-num); font-variant-numeric: tabular-nums; font-size: 12px; }
-.row { display: grid; grid-template-columns: 1.2fr 0.8fr 1fr 1fr; gap: var(--s-2); padding: 3px var(--s-2); text-align: right; }
-.row > span:first-child, .row > span:nth-child(2) { text-align: left; }
-.head { position: sticky; top: 0; background: var(--surface-1); color: var(--muted); font-family: var(--font-ui); font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; border-bottom: 1px solid var(--border); }
-.buy > span:nth-child(2), .buy > span:nth-child(3) { color: var(--pos); }
-.sell > span:nth-child(2), .sell > span:nth-child(3) { color: var(--neg); }
-.empty { color: var(--muted); }
+
+/* Tape body: scrolls inside the card so a long tape never stretches the row. */
+.scroller { flex: 1; min-height: 0; position: relative; }
+.scrollInner { position: absolute; inset: 0; overflow-y: auto; font-family: var(--font-num, "JetBrains Mono", ui-monospace, monospace); font-variant-numeric: tabular-nums; font-size: 12px; }
+.tapeRow { display: grid; grid-template-columns: 1fr 1fr 1fr; padding: 3px 14px; }
+.buy { color: #4fd1a5; }
+.sell { color: #ff8f73; }

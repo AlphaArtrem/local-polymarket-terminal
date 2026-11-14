@@ -60,43 +60,36 @@ function Row({ item, prices, editing }: { item: WatchItem; prices: Record<string
   if (item.kind === "outcome") {
     const now = prices[item.assetId] ?? null;
     const delta = deltaCents(item.priceAtAdd, now);
-    const tone = delta === null ? "" : delta.startsWith("+") ? "pos" : delta.startsWith("-") ? "neg" : "muted";
+    const tone = delta === null ? "muted" : delta.startsWith("+") ? styles.up : delta.startsWith("-") ? styles.down : "muted";
     body = (
       <Link className={styles.link} href={`/market/${slug}?asset=${item.assetId}`}>
-        <span className={styles.name}>
-          <span className={styles.label}>{item.label}</span>
-          <span className={`muted ${styles.sub}`}>{item.eventTitle}</span>
-        </span>
-        <span className={styles.figs}>
-          <span className="num">{now === null ? "—" : `${toCents(now)}¢`}</span>
-          {delta !== null && (
-            <span className={`num ${tone} ${styles.delta}`} title="since starred">
-              {delta}¢
-            </span>
-          )}
-        </span>
+        <span className={styles.label}>{item.label}</span>
+        <span className={`num ${styles.price}`}>{now === null ? "—" : `${toCents(now)}¢`}</span>
+        <span className={`muted ${styles.sub}`}>{item.eventTitle}</span>
+        {delta !== null ? (
+          <span className={`num ${tone} ${styles.delta}`} title="since starred">
+            {delta}¢
+          </span>
+        ) : (
+          <span />
+        )}
       </Link>
     );
   } else {
     body = (
       <Link className={styles.link} href={`/market/${slug}`}>
-        <span className={styles.name}>
-          <span className={styles.label}>{item.eventTitle}</span>
-          <span className={`muted ${styles.sub}`}>Event</span>
-        </span>
+        <span className={styles.label}>{item.eventTitle}</span>
+        <span />
+        <span className={`muted ${styles.sub}`}>Event</span>
       </Link>
     );
   }
+  const name = item.kind === "outcome" ? item.label : item.eventTitle;
   return (
     <li className={styles.row}>
       {body}
       {editing && (
-        <button
-          type="button"
-          className={`btn btn-ghost ${styles.remove}`}
-          aria-label={`Remove ${item.kind === "outcome" ? item.label : item.eventTitle} from watchlist`}
-          onClick={() => unwatch(item.id)}
-        >
+        <button type="button" className={`chip ${styles.remove}`} aria-label={`Remove ${name} from watchlist`} onClick={() => unwatch(item.id)}>
           ×
         </button>
       )}
@@ -113,22 +106,21 @@ export function WatchlistCard() {
   return (
     <section className={`card ${styles.card}`} aria-label="Watchlist">
       <div className={styles.head}>
-        <span className="lbl">Watchlist ({items.length})</span>
+        <span className="lbl">Watchlist · {items.length}</span>
         {items.length > 0 && (
           <button type="button" className="chip" aria-pressed={editing} onClick={() => setEditing((v) => !v)}>
-            Edit
+            {editing ? "Done" : "Edit"}
           </button>
         )}
       </div>
-      {items.length === 0 ? (
-        <p className="muted" style={{ margin: 0 }}>Star a market to pin it here.</p>
-      ) : (
+      {items.length > 0 && (
         <ul className={styles.list}>
           {items.map((item) => (
             <Row key={item.id} item={item} prices={prices} editing={editing} />
           ))}
         </ul>
       )}
+      <p className={`muted ${styles.hint}`}>Star a market or outcome to pin it here. Prices refresh every 15 s.</p>
     </section>
   );
 }

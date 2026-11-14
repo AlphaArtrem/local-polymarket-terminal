@@ -3,7 +3,7 @@
 import { useState } from "react";
 import type { CancelAllResult } from "@/lib/phase7-types";
 import { ConfirmDialog } from "./ConfirmDialog";
-import styles from "./dashboard/dashboard.module.css";
+import styles from "./cancel-all.module.css";
 import type { ApiErrorBody } from "./dashboard/types";
 
 type Props = {
@@ -46,7 +46,7 @@ export function CancelAllButton({ count, conditionIds, label = "Cancel all", onD
   const failed = result ? Object.keys(result.notCanceled).length : 0;
   return (
     <>
-      <button type="button" className={`btn btn-no ${styles.sm}`} disabled={count === 0 || busy} onClick={() => { setError(null); setOpen(true); }}>
+      <button type="button" className={styles.chip} disabled={count === 0 || busy} onClick={() => { setError(null); setOpen(true); }}>
         {label}
       </button>
       {result ? (

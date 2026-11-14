@@ -27,6 +27,27 @@ export function shortDate(iso: string | null | undefined): string {
     : d.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric", timeZone: "UTC" });
 }
 
+/** "Next CEO of NVIDIA?" -> "NC": up to two leading letters for the event tile when there is no image. */
+export function initials(title: string): string {
+  const words = title.match(/[A-Za-z0-9]+/g) ?? [];
+  const letters = words.slice(0, 2).map((w) => w[0]!.toUpperCase()).join("");
+  return letters || "?";
+}
+
+/** Move over a window as the strip shows it: "+0.6¢ (7.6%)". Inputs are 0..1 prices. */
+export function changeText(first: number, last: number): { text: string; tone: "pos" | "neg" | "flat" } {
+  const move = Math.round((last - first) * 1000) / 10;
+  const tone = move > 0 ? "pos" : move < 0 ? "neg" : "flat";
+  const sign = move > 0 ? "+" : move < 0 ? "-" : "";
+  const percent = first > 0 ? ` (${sign}${Math.abs(Math.round(((last - first) / first) * 1000) / 10)}%)` : "";
+  return { text: `${sign}${Math.abs(move)}¢${percent}`, tone };
+}
+
+/** Whole-dollar total for a book level, with separators. */
+export function wholeUsd(value: number): string {
+  return `$${Math.round(value).toLocaleString("en-US")}`;
+}
+
 /** "0.0765" -> 7.65 (percent, clamped 0-100) for probability bars. */
 export function pct(price: string | null | undefined): number {
   const n = Number(price);

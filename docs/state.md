@@ -84,6 +84,15 @@ v1 is live-tested with a real wallet (order placed and cancelled, 2026-11-14). `
   `USER_REJECTED` 403, `ACCOUNT_LOOKUP_FAILED` 503, `WALLET_CONFIG` 409, `CONNECT_FAILED` 500.
   Root layout is force-dynamic (mode read per request). Deposit QR: `uqr` 0.1.3, fixed black on
   white; `jsqr` 1.4.0 (dev) round-trip test. README has the VPS guide.
+- **Phase 11 — app matches the design canvas** (claude.ai artifact BUokYHENKXK3Rtfsy8mPvN, the
+  source of truth for UI). Header: Markets · Portfolio · Alerts · Automation, cash amount only,
+  Deposit button and account menu on every page, no access chip (access still drives the ticket).
+  Trade page: breadcrumb, Market | Limit | Pro ticket (automation moved into Pro), order book and
+  trades fill the column, per-event bottom tabs, order confirm with BUY/SELL tag and a success toast.
+  Markets: featured card with a 1-week chart, card Buy links preselect the Yes outcome, Watchlist /
+  Your book / Shortcuts rail. Portfolio: banners, KPI tiles, Enable trading and Deposit as dialogs
+  (wallet mode shows "transaction k of n" from `useWallet().requestCount`). Alerts and Automation
+  redesigned. Shortcut chord `g m` replaces `g b`. No emoji in the UI.
 
 Verified in the browser on a production build (2026-11-15). Wallet mode, no key: `/api/account`
 and `POST /api/approvals` return 401 `WALLET_NOT_CONNECTED`; the Connect dialog says no wallet is
@@ -165,5 +174,7 @@ The user runs the live checks Phase 10 could not (agents must not place or sign 
 4. Scan the Deposit QR with a phone and compare it with the address shown.
 5. Walk through the VPS section of the README end to end.
 6. Run `npm run doctor` with `POLYMARKET_WALLET_ADDRESS` blank.
+
+7. Review the rebuilt UI against the design canvas; note gaps listed under Phase 11 in plan.md.
 
 Report what failed; findings go to hazards.md and external-facts.md. No further phases planned.

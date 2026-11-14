@@ -23,6 +23,10 @@ export type WalletState = {
   closeConnect(): void;
   connect(detail: ProviderDetail, accountWallet?: string): Promise<void>;
   disconnect(): Promise<void>;
+  /** Summary of the wallet request waiting for the user right now, or null. */
+  pendingSummary: string | null;
+  /** Wallet requests shown so far in the current signing fetch (1 = the first is waiting). */
+  requestCount: number;
   /** fetch that runs the signing loop for operation envelopes; identical to fetch otherwise. */
   fetch(url: string, init?: RequestInit): Promise<Response>;
 };
@@ -45,6 +49,8 @@ export const WalletContext = createContext<WalletState>({
   closeConnect: () => undefined,
   connect: noop,
   disconnect: noop,
+  pendingSummary: null,
+  requestCount: 0,
   fetch: (url, init) => fetch(url, init),
 });
 

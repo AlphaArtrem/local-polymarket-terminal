@@ -1,8 +1,8 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { addAlert, ALERTS_STORAGE_KEY, isArmed, parseStored, removeAlert, rearmAlert, serializeAlerts, type NewAlert } from "@/lib/alerts";
-import type { PriceAlert } from "@/lib/phase7-types";
+import type { PriceAlert, PricesDTO } from "@/lib/phase7-types";
 
 /**
  * localStorage-backed alert store for useSyncExternalStore. `subscribe` and the snapshots are
@@ -90,4 +90,39 @@ export function useArmedCount(assetId?: string): number {
   return alerts.filter((a) => isArmed(a) && (assetId === undefined || a.assetId === assetId)).length;
 }
 
+const PRICES_POLL_MS = 15_000;
+const PRICES_MAX_IDS = 50; // /api/prices limit per request
 
+/** Current midpoints (0..1 strings) for the given assets, polled while the tab is visible. Display only. */
+export function useAlertPrices(assetIds: string[]): Record<string, string | null> {
+  const [prices, setPrices] = useState<Record<string, string | null>>({});
+  const key = assetIds.join(",");
+
+  useEffect(() => {
+    const ids = key === "" ? [] : key.split(",");
+    if (ids.length === 0) return;
+    const controller = new AbortController();
+    const load = async () => {
+      if (document.visibilityState !== "visible") return;
+      try {
+        const next: Record<string, string | null> = {};
+        for (let i = 0; i < ids.length; i += PRICES_MAX_IDS) {
+          const res = await fetch(`/api/prices?assetIds=${ids.slice(i, i + PRICES_MAX_IDS).join(",")}`, { signal: controller.signal });
+          if (!res.ok) throw new Error(`prices ${res.status}`);
+          Object.assign(next, ((await res.json()) as PricesDTO).prices);
+        }
+        setPrices((prev) => ({ ...prev, ...next }));
+      } catch (err) {
+        if (!controller.signal.aborted) console.error("alerts: price display failed", err);
+      }
+    };
+    void load();
+    const timer = setInterval(() => void load(), PRICES_POLL_MS);
+    return () => {
+      controller.abort();
+      clearInterval(timer);
+    };
+  }, [key]);
+
+  return prices;
+}

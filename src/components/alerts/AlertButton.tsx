@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { parseCents, toCents } from "@/lib/alerts";
 import { parseDecimal } from "@/lib/decimal";
-import styles from "./alerts.module.css";
+import styles from "./alert-button.module.css";
 import { requestPermission } from "./notify";
 import { createAlert, useArmedCount } from "./useAlerts";
 
@@ -36,43 +36,57 @@ export function AlertButton({ assetId, label, eventSlug, currentPrice }: Props) 
 
   return (
     <span className={styles.wrap}>
-      <button type="button" className="btn" aria-expanded={open} onClick={() => setOpen((v) => !v)}>
-        🔔 Alert{armed > 0 ? ` (${armed})` : ""}
+      <button type="button" className={styles.trigger} aria-expanded={open} onClick={() => setOpen((v) => !v)}>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#C7D0D9" strokeWidth="2" aria-hidden="true">
+          <path d="M6 8a6 6 0 1112 0c0 7 3 9 3 9H3s3-2 3-9" />
+          <path d="M10 21h4" />
+        </svg>
+        {armed > 0 ? `Alert · ${armed}` : "Alert"}
       </button>
       {open && (
         <form
           className={styles.popover}
+          aria-label="New price alert"
+          onKeyDown={(e) => {
+            if (e.key === "Escape") setOpen(false);
+          }}
           onSubmit={(e) => {
             e.preventDefault();
             void save();
           }}
         >
-          <div className={styles.row}>
-            <select
-              className="input"
-              aria-label="Direction"
-              value={direction}
-              onChange={(e) => setPicked(e.target.value === "below" ? "below" : "above")}
-            >
-              <option value="above">Above</option>
-              <option value="below">Below</option>
-            </select>
-            <input
-              className="input num"
-              aria-label="Price in cents"
-              inputMode="decimal"
-              value={cents}
-              onChange={(e) => setCents(e.target.value)}
-              size={6}
-            />
-            <span>¢</span>
+          <div className={styles.title}>
+            {label}
+            {currentPrice ? <span className={styles.now}> · now {toCents(currentPrice)}¢</span> : null}
           </div>
-          {error && <div className={styles.error}>{error}</div>}
-          <div className={styles.row}>
-            <button type="submit" className="btn btn-primary">Save</button>
-            <button type="button" className="btn btn-ghost" onClick={() => setOpen(false)}>
+          <div className={styles.grid}>
+            <label className={styles.field}>
+              <span className={styles.lbl}>Direction</span>
+              <span className={styles.control}>
+                <select
+                  aria-label="Direction"
+                  value={direction}
+                  onChange={(e) => setPicked(e.target.value === "below" ? "below" : "above")}
+                >
+                  <option value="above">Above</option>
+                  <option value="below">Below</option>
+                </select>
+              </span>
+            </label>
+            <label className={styles.field}>
+              <span className={styles.lbl}>Price ¢</span>
+              <span className={styles.control}>
+                <input aria-label="Price in cents" inputMode="decimal" value={cents} onChange={(e) => setCents(e.target.value)} />
+                <span className={styles.unit}>¢</span>
+              </span>
+            </label>
+          </div>
+          {error && <div className={styles.error} role="alert">{error}</div>}
+          <div className={styles.actions}>
+            <button type="button" className={styles.btn} onClick={() => setOpen(false)}>
               Cancel
             </button>
+            <button type="submit" className={`${styles.btn} ${styles.primary}`}>Save alert</button>
           </div>
         </form>
       )}

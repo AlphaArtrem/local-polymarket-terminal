@@ -22,7 +22,8 @@ connect or with your own key kept in a local env file.
 - **Advanced orders**: limit orders that expire (GTD) or are post-only, and optional take-profit /
   stop-loss and TWAP rules that this app executes for you while it runs (`/automation`).
 - **Portfolio** (`/portfolio`): pUSD balance, portfolio value, open and closed positions, open
-  orders, trade history and activity, with **Export CSV** on each tab and a **Deposit** dialog.
+  orders, trade history and activity, with **Export CSV** on each tab. **Deposit** is in the header on
+  every page.
 - **Watchlist**: star an event or outcome (browse cards, market header); the Browse sidebar shows
   starred outcomes with live prices and the change since you starred them. Stored only in your
   browser.
@@ -276,7 +277,7 @@ What to know before you turn it on:
 | Keys | Action |
 | - | - |
 | ⌘K / Ctrl+K, `/` | Focus search |
-| `g` then `b` / `p` / `a` | Go to Browse / Portfolio / Alerts |
+| `g` then `m` / `p` / `a` | Go to Markets / Portfolio / Alerts |
 | `b` / `s` | On a market: set the ticket to Buy / Sell and focus its first field |
 | `y` / `n` | On a market: select the Yes / No outcome (first / second) |
 | `?` | Show all shortcuts; single-key shortcuts can be switched off there |

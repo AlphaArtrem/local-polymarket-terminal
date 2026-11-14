@@ -22,13 +22,16 @@ export function AutomationStatus() {
   } else if (data) {
     const live = data.rules.filter((r) => r.status === "armed" || r.status === "firing").length;
     value = data.paused ? "Paused" : "Running";
-    sub = `${live} active ${live === 1 ? "rule" : "rules"} of ${data.rules.length}`;
+    sub = `${live} active ${live === 1 ? "rule" : "rules"} of ${data.rules.length}${data.paused ? " · resume on the Automation page" : ""}`;
   }
 
   return (
     <Link href="/automation" className={`card ${styles.card} ${styles.cardLink}`}>
-      <div className="lbl">Automation</div>
-      <div className={styles.cardValue}>{value}</div>
+      <div className={styles.cardLinkHead}>
+        <span className="lbl">Automation</span>
+        <span aria-hidden="true">→</span>
+      </div>
+      <div className={`${styles.cardValue} ${styles.cardValueText}`}>{value}</div>
       <div className={styles.cardSub}>{sub}</div>
     </Link>
   );

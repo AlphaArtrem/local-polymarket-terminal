@@ -2,7 +2,7 @@ import styles from "./shortcuts.module.css";
 
 const ITEMS: { keys: string; label: string }[] = [
   { keys: "/", label: "Search" },
-  { keys: "g b / p / a", label: "Trade / Portfolio / Alerts" },
+  { keys: "g m / p / a", label: "Markets / Portfolio / Alerts" },
   { keys: "b  s", label: "Buy / Sell on a market" },
   { keys: "y  n", label: "Yes / No outcome" },
   { keys: "?", label: "All shortcuts" },

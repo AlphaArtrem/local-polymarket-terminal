@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { watchId, MAX_WATCHLIST, type NewWatchItem } from "@/lib/watchlist";
-import styles from "./watchlist.module.css";
+import styles from "./star-button.module.css";
 import { toggleWatch, useIsWatched } from "./useWatchlist";
 
 type Props = { item: NewWatchItem; label: string; className?: string };
+
+const AMBER = "#E8C27A";
 
 export function StarButton({ item, label, className }: Props) {
   const watched = useIsWatched(watchId(item));
@@ -18,16 +20,18 @@ export function StarButton({ item, label, className }: Props) {
   }, [full]);
 
   return (
-    <span className={`${styles.starWrap} ${className ?? ""}`}>
+    <span className={`${styles.wrap} ${className ?? ""}`}>
       <button
         type="button"
-        className={`btn btn-ghost ${styles.star} ${watched ? styles.starOn : ""}`}
+        className={styles.star}
         aria-pressed={watched}
         aria-label={watched ? `Remove ${label} from watchlist` : `Add ${label} to watchlist`}
         title={watched ? "Remove from watchlist" : "Add to watchlist"}
         onClick={() => setFull(toggleWatch(item))}
       >
-        <span aria-hidden="true">{watched ? "★" : "☆"}</span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill={watched ? AMBER : "none"} stroke={watched ? AMBER : "currentColor"} strokeWidth="2" strokeLinejoin="round" aria-hidden="true">
+          <path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z" />
+        </svg>
       </button>
       {full && (
         <span className={styles.msg} role="status">

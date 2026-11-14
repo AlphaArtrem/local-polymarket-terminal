@@ -10,8 +10,8 @@ import { useWallet } from "../wallet/useWallet";
 
 type Done = { status: RedeemResult["status"]; txHash: string | null };
 
-/** Redeems one resolved market after an explicit confirmation (POST /api/redeem). */
-export function RedeemButton({ position, onDone }: { position: PositionDto; onDone?: () => void }) {
+/** Redeems one resolved market after an explicit confirmation (POST /api/redeem). `prominent` = banner style. */
+export function RedeemButton({ position, onDone, prominent = false }: { position: PositionDto; onDone?: () => void; prominent?: boolean }) {
   const wallet = useWallet();
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -53,7 +53,7 @@ export function RedeemButton({ position, onDone }: { position: PositionDto; onDo
   }
   return (
     <>
-      <button type="button" className={`btn btn-yes ${styles.sm}`} onClick={() => setConfirming(true)} disabled={busy}>
+      <button type="button" className={prominent ? `btn btn-primary ${styles.redeemBtn}` : `btn btn-yes ${styles.sm}`} onClick={() => setConfirming(true)} disabled={busy}>
         Redeem
       </button>
       {confirming ? (

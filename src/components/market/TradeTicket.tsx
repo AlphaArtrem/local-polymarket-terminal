@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useShortcutAction } from "@/components/shortcuts/useShortcutAction";
 import { ConfirmDialog, type ConfirmRow } from "@/components/ConfirmDialog";
@@ -16,16 +17,21 @@ import { estimateBuy, estimateSell, type Fill } from "@/lib/estimate";
 import { tradingMode, type TradingMode } from "@/lib/jurisdiction";
 import type { SelectedOutcome } from "@/lib/market";
 import { validateOrder, type OrderRequest } from "@/server/orders/validate";
-import { formatTime } from "@/lib/format";
+import { formatCents, formatSignedUsd, formatTime, formatUsd, pnlTone } from "@/lib/format";
+import type { AccountMode } from "@/lib/wallet-protocol";
+import { AutomateSection } from "../automation/AutomateSection";
 import { cents, shares as fmtShares } from "./fmt";
 import styles from "./ticket.module.css";
-import { useAccess, useBook, useHeld } from "./useTicketData";
+import { useAccess, useBalance, useBook, usePosition } from "./useTicketData";
 import { ConnectPrompt } from "../wallet/ConnectWallet";
 import { useWallet } from "../wallet/useWallet";
 
 type Side = "BUY" | "SELL";
 type OrderKind = "LIMIT" | "MARKET";
+type Tab = "MARKET" | "LIMIT" | "PRO";
 type Placed = { orderId: string; status: string; settling: boolean };
+/** What the success toast says; captured at submit because the form is cleared afterwards. */
+type PlacedInfo = { side: Side; shares: string; avg: string; outcome: string; market: string };
 
 type Props = {
   selected: SelectedOutcome | null;
@@ -34,6 +40,13 @@ type Props = {
   initialSide?: Side;
   outcomeIndex: number;
   onOutcomeChange: (index: number) => void;
+  eventTitle: string;
+  eventSlug: string;
+  /** Server cap per order, for the footer line; null when unknown. */
+  maxOrderUsdc: number | null;
+  accountMode: AccountMode;
+  /** Increments when the page asks to sell this outcome (e.g. a Close button in the positions list). */
+  sellToken?: number;
 };
 
 const SETTLE_POLL_MS = 5_000;
@@ -61,6 +74,8 @@ const EXPIRY_OPTIONS: { value: ExpiryChoice; label: string; seconds?: number }[]
   { value: "custom", label: "Custom" },
 ];
 const CLOCK_TICK_MS = 15_000;
+const TOAST_MS = 12_000;
+const QUICK_ADDS = [1, 5, 10] as const;
 
 /** Unix seconds for the chosen expiry, or undefined for GTC / an unparseable custom date. */
 function resolveExpiry(choice: ExpiryChoice, customText: string, nowSec: number): number | undefined {
@@ -111,10 +126,11 @@ function estimate(kind: OrderKind, side: Side, price: bigint | null, size: bigin
   return fill ? { shares: fill.shares, avg: fill.avgPrice, total: fill.cost, complete: fill.complete } : null;
 }
 
-export function TradeTicket({ selected, configured, initialSide, outcomeIndex, onOutcomeChange }: Props) {
+export function TradeTicket({ selected, configured, initialSide, outcomeIndex, onOutcomeChange, eventTitle, eventSlug, maxOrderUsdc, accountMode, sellToken = 0 }: Props) {
   const wallet = useWallet();
   const [tradeSide, setTradeSide] = useState<Side>(initialSide ?? "BUY");
-  const [kind, setKind] = useState<OrderKind>("LIMIT");
+  const [tab, setTab] = useState<Tab>("MARKET");
+  const kind: OrderKind = tab === "LIMIT" ? "LIMIT" : "MARKET";
   const [priceText, setPriceText] = useState("");
   const [sizeText, setSizeText] = useState("");
   const [amountText, setAmountText] = useState("");
@@ -122,6 +138,7 @@ export function TradeTicket({ selected, configured, initialSide, outcomeIndex, o
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [placed, setPlaced] = useState<Placed | null>(null);
+  const [placedInfo, setPlacedInfo] = useState<PlacedInfo | null>(null);
   const [settlingId, setSettlingId] = useState<string | null>(null);
   const [refresh, setRefresh] = useState(0);
   const [expiryChoice, setExpiryChoice] = useState<ExpiryChoice>("never");
@@ -135,6 +152,22 @@ export function TradeTicket({ selected, configured, initialSide, outcomeIndex, o
   }, []);
 
   const access = useAccess();
+
+  // A page-level "close this position" request: switch to Sell on a market order.
+  const handledSell = useRef(sellToken);
+  useEffect(() => {
+    if (sellToken === handledSell.current) return;
+    handledSell.current = sellToken;
+    setTradeSide("SELL");
+    setTab((t) => (t === "PRO" ? "MARKET" : t));
+  }, [sellToken]);
+
+  // The success toast clears itself; the dismiss button does it sooner.
+  useEffect(() => {
+    if (!placed) return;
+    const timer = setTimeout(() => setPlaced(null), TOAST_MS);
+    return () => clearTimeout(timer);
+  }, [placed]);
 
   // Keyboard shortcuts: change side/outcome and move focus only. Never submit or open the confirm dialog.
   const fieldsRef = useRef<HTMLFieldSetElement>(null);
@@ -161,7 +194,9 @@ export function TradeTicket({ selected, configured, initialSide, outcomeIndex, o
 
   const assetId = selected?.outcome.assetId ?? "";
   const book = useBook(assetId, refresh);
-  const held = useHeld(assetId, configured && selected !== null, refresh);
+  const position = usePosition(assetId, configured && selected !== null, refresh);
+  const held = { data: position.data ? (position.data.position?.size ?? "0") : null, error: position.error };
+  const balance = useBalance(configured && selected !== null, refresh);
 
   // After a fill: poll the order and position endpoints a few times over ~20 s (H6), then settle.
   useEffect(() => {
@@ -293,6 +328,13 @@ export function TradeTicket({ selected, configured, initialSide, outcomeIndex, o
       }
       const result = body as Placed;
       setPlaced(result);
+      setPlacedInfo({
+        side,
+        shares: est ? `${kind === "MARKET" && side === "BUY" ? "~" : ""}${fmtShares(formatDecimal(est.shares))}` : "-",
+        avg: est?.avg ? centsOf(est.avg) : "-",
+        outcome: outcome.label,
+        market: market.title,
+      });
       setConfirming(false);
       setSizeText("");
       setAmountText("");
@@ -306,10 +348,12 @@ export function TradeTicket({ selected, configured, initialSide, outcomeIndex, o
     }
   }
 
+  const sharesText = est ? `${kind === "MARKET" && side === "BUY" ? "~" : ""}${fmtShares(formatDecimal(est.shares))}` : "-";
+  const payout = est ? mulFloor(est.shares, ONE) : null;
+  const winPercent =
+    est && payout !== null && est.total > 0n ? Math.round((Number(payout - est.total) / Number(est.total)) * 100) : null;
+
   const rows: ConfirmRow[] = [
-    { label: "Market", value: market.question },
-    { label: "Outcome", value: outcome.label },
-    { label: "Side", value: side },
     { label: "Type", value: kind === "LIMIT" ? "Limit" : "Market (fill or cancel remainder)" },
     ...(kind === "LIMIT"
       ? [
@@ -323,25 +367,38 @@ export function TradeTicket({ selected, configured, initialSide, outcomeIndex, o
           ...(postOnly ? [{ label: "Post only", value: "Yes: rejected instead of filling immediately" }] : []),
         ]
       : []),
-    { label: "Price", value: kind === "LIMIT" && price !== null ? centsOf(price) : est?.avg ? `~${centsOf(est.avg)} avg (est.)` : "-" },
-    { label: "Shares", value: est ? `${kind === "MARKET" && side === "BUY" ? "~" : ""}${fmtShares(formatDecimal(est.shares))}` : "-" },
-    { label: side === "BUY" ? "Total cost" : "Total proceeds", value: est ? `${kind === "MARKET" && side === "SELL" ? "~" : ""}${usd(est.total)}` : "-" },
+    { label: "Price", mono: true, value: kind === "LIMIT" && price !== null ? centsOf(price) : est?.avg ? `~${centsOf(est.avg)} avg (est.)` : "-" },
+    { label: "Shares", mono: true, value: sharesText },
+    { label: side === "BUY" ? "Total cost" : "Total proceeds", mono: true, value: est ? `${kind === "MARKET" && side === "SELL" ? "~" : ""}${usd(est.total)}` : "-" },
+    ...(side === "BUY" && payout !== null ? [{ label: `To win if ${outcome.label} wins`, mono: true, tone: "pos" as const, value: usd(payout) }] : []),
     { label: "Trading mode", value: mode ?? "-" },
+    ...(accountMode === "wallet" ? [{ label: "Signing", value: `One signature in ${wallet.walletName ?? "your wallet"}` }] : []),
   ];
+
+  const addAmount = (dollars: number) => {
+    const current = parseDecimal(amountText.trim()) ?? 0n;
+    setAmountText(formatDecimal(current + BigInt(dollars) * ONE));
+  };
+  const maxAmount = () => {
+    const cash = balance === null ? null : parseDecimal(balance);
+    if (cash === null) return;
+    const cap = maxOrderUsdc !== null && Number.isFinite(maxOrderUsdc) ? BigInt(Math.floor(maxOrderUsdc)) * ONE : cash;
+    setAmountText(formatDecimal(floorToStep(cash < cap ? cash : cap, CENT_STEP)));
+  };
+
+  const cta = tab === "PRO" ? null : side === "BUY" ? "Review buy order" : "Review sell order";
+  const pos = position.data?.position ?? null;
+  const yesWins = side === "BUY" && payout !== null;
 
   return (
     <div className={`card ${styles.ticket}`} data-testid="ticket" data-state={disabledAll ? "disabled" : "ready"}>
-      <div className={styles.head}>
-        <strong>Trade ticket</strong>
-        <span className={styles.muted}>{market.title}</span>
-      </div>
-
-      <div className={`pill-tabs ${styles.seg}`} role="group" aria-label="Side">
+      <div className={`${styles.seg} ${styles.sideSeg}`} role="group" aria-label="Side">
         {(["BUY", "SELL"] as const).map((s) => (
           <button
             key={s}
             type="button"
             aria-pressed={side === s}
+            data-side={s}
             disabled={mode === "CLOSE-ONLY" && s === "BUY"}
             onClick={() => setTradeSide(s)}
           >
@@ -355,113 +412,213 @@ export function TradeTicket({ selected, configured, initialSide, outcomeIndex, o
             key={o.assetId}
             type="button"
             aria-pressed={i === outcomeIndex}
-            className={`btn ${i === 0 ? "btn-yes" : "btn-no"} ${styles.outcomeBtn}`}
+            data-tone={i === 0 ? "yes" : "no"}
+            className={styles.outcomeBtn}
             onClick={() => onOutcomeChange(i)}
           >
-            <span>{o.label}</span>
-            <span className="num">{cents(o.price)}</span>
+            {o.label} <span className="num">{cents(o.price)}</span>
           </button>
         ))}
       </div>
-      <div className={`pill-tabs ${styles.seg}`} role="group" aria-label="Order type">
-        {(["LIMIT", "MARKET"] as const).map((k) => (
-          <button key={k} type="button" aria-pressed={kind === k} onClick={() => setKind(k)}>
-            {k === "LIMIT" ? "Limit" : "Market"}
+      <div role="tablist" aria-label="Order type" className={styles.tabs}>
+        {([["MARKET", "Market"], ["LIMIT", "Limit"], ["PRO", "Pro"]] as const).map(([value, text]) => (
+          <button key={value} type="button" role="tab" aria-selected={tab === value} onClick={() => setTab(value)}>
+            {text}
           </button>
         ))}
       </div>
 
-      {access.error ? <div className={styles.bad}>Could not load access status ({access.error}); trading disabled.</div> : null}
+      {access.error ? <div className={styles.errorNote}>Could not load access status ({access.error}); trading disabled.</div> : null}
       {mode === null && !access.error ? <div className={styles.muted}>Checking access…</div> : null}
-      {mode ? <div className={styles.muted} data-testid="mode">Mode: {mode}</div> : null}
-      {message ? <div className={styles.warn} role="status">{message}</div> : null}
+      {message ? <div className={styles.warn} role="status" data-testid="mode">{message}</div> : null}
       {!market.acceptingOrders ? <div className={styles.warn}>This market is not accepting orders.</div> : null}
 
-      <fieldset ref={fieldsRef} className={styles.fields} disabled={disabledAll}>
-        {kind === "LIMIT" ? (
-          <label>
-            Price (¢) <span className={styles.muted}>tick {tick === null ? "?" : `${formatDecimal(tick * HUNDRED)}¢`}</span>
-            <input
-              className="input num"
-              inputMode="decimal"
-              value={priceText}
-              onChange={(e) => setPriceText(e.target.value)}
-              onBlur={() => price !== null && setPriceText(formatDecimal(price * HUNDRED))}
-              placeholder={cents(outcome.price)}
-            />
-          </label>
-        ) : null}
-        {kind === "MARKET" && side === "BUY" ? (
-          <label>
-            Amount (pUSD)
-            <input className="input num" inputMode="decimal" value={amountText} onChange={(e) => setAmountText(e.target.value)} placeholder="10" />
-          </label>
+      {tab === "PRO" ? (
+        accountMode === "wallet" ? (
+          <p className={styles.warn}>
+            Run by this app, not Polymarket: only while it is running, as market orders, unattended. Automation needs the
+            server key and is not available with a browser wallet.
+          </p>
+        ) : market.conditionId ? (
+          <AutomateSection
+            key={`auto-${outcome.assetId}`}
+            assetId={outcome.assetId}
+            conditionId={market.conditionId}
+            label={`${market.title} · ${outcome.label}`}
+            eventSlug={eventSlug}
+            currentPrice={outcome.price ?? null}
+          />
         ) : (
-          <label>
-            Shares {market.minSize ? <span className={styles.muted}>min {market.minSize}</span> : null}
-            <span className={styles.inline}>
-              <input className="input num" inputMode="decimal" value={sizeText} onChange={(e) => setSizeText(e.target.value)} placeholder="5" />
-              {side === "SELL" ? (
-                <button type="button" className="btn" onClick={() => setSizeText(formatDecimal(floorToStep(heldUnits, CENT_STEP)))} disabled={heldUnits === 0n}>
-                  Max
-                </button>
-              ) : null}
-            </span>
-          </label>
-        )}
-        {kind === "LIMIT" ? (
-          <>
-            <label>
-              Expires
-              <select className="input" value={expiryChoice} onChange={(e) => setExpiryChoice(e.target.value as ExpiryChoice)} data-testid="expiry-select">
-                {EXPIRY_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>{o.label}</option>
-                ))}
-              </select>
-            </label>
-            {expiryChoice === "custom" ? (
-              <input className="input" type="datetime-local" aria-label="Custom expiry" value={customExpiry} onChange={(e) => setCustomExpiry(e.target.value)} />
+          <p className={styles.warn}>This market has no condition id, so automation rules cannot target it.</p>
+        )
+      ) : (
+        <>
+          <fieldset ref={fieldsRef} className={styles.fields} disabled={disabledAll}>
+            {kind === "MARKET" && side === "BUY" ? (
+              <>
+                <label className={styles.field}>
+                  <span className={styles.lbl}>Amount</span>
+                  <span className={styles.control}>
+                    <span className={styles.unit}>$</span>
+                    <input aria-label="Amount in pUSD" inputMode="decimal" value={amountText} onChange={(e) => setAmountText(e.target.value)} placeholder="10" />
+                    <span className={styles.unitSmall}>pUSD</span>
+                  </span>
+                </label>
+                <div className={styles.chips}>
+                  {QUICK_ADDS.map((n) => (
+                    <button key={n} type="button" className={styles.chip} onClick={() => addAmount(n)}>+${n}</button>
+                  ))}
+                  <button type="button" className={styles.chip} onClick={maxAmount} disabled={balance === null}>Max</button>
+                </div>
+              </>
+            ) : (
+              <>
+                {kind === "LIMIT" ? (
+                  <div className={styles.grid2}>
+                    <label className={styles.field}>
+                      <span className={styles.lbl}>Price ¢</span>
+                      <span className={styles.control}>
+                        <input
+                          aria-label="Limit price in cents"
+                          inputMode="decimal"
+                          value={priceText}
+                          onChange={(e) => setPriceText(e.target.value)}
+                          onBlur={() => price !== null && setPriceText(formatDecimal(price * HUNDRED))}
+                          placeholder={cents(outcome.price).replace("¢", "")}
+                        />
+                      </span>
+                    </label>
+                    <label className={styles.field}>
+                      <span className={styles.lbl}>Shares</span>
+                      <span className={styles.control}>
+                        <input aria-label="Shares" inputMode="decimal" value={sizeText} onChange={(e) => setSizeText(e.target.value)} placeholder="5" />
+                      </span>
+                    </label>
+                  </div>
+                ) : (
+                  <label className={styles.field}>
+                    <span className={styles.lbl}>Shares</span>
+                    <span className={styles.control}>
+                      <input aria-label="Shares" inputMode="decimal" value={sizeText} onChange={(e) => setSizeText(e.target.value)} placeholder="5" />
+                    </span>
+                  </label>
+                )}
+                {side === "SELL" ? (
+                  <div className={styles.chips}>
+                    <button type="button" className={styles.chip} onClick={() => setSizeText(formatDecimal(floorToStep(heldUnits, CENT_STEP)))} disabled={heldUnits === 0n}>
+                      Max
+                    </button>
+                  </div>
+                ) : null}
+              </>
+            )}
+            {kind === "LIMIT" ? (
+              <>
+                <label className={styles.field}>
+                  <span className={styles.lbl}>Expires</span>
+                  <span className={styles.control}>
+                    <select aria-label="Expiry" value={expiryChoice} onChange={(e) => setExpiryChoice(e.target.value as ExpiryChoice)} data-testid="expiry-select">
+                      {EXPIRY_OPTIONS.map((o) => (
+                        <option key={o.value} value={o.value}>{o.label}</option>
+                      ))}
+                    </select>
+                  </span>
+                </label>
+                {expiryChoice === "custom" ? (
+                  <span className={styles.control}>
+                    <input type="datetime-local" aria-label="Custom expiry" value={customExpiry} onChange={(e) => setCustomExpiry(e.target.value)} />
+                  </span>
+                ) : null}
+                <label className={styles.check}>
+                  <input type="checkbox" checked={postOnly} onChange={(e) => setPostOnly(e.target.checked)} />
+                  <span>
+                    Post only <span className={styles.muted}>· rejected instead of filling immediately</span>
+                  </span>
+                </label>
+                <div className={styles.muted}>
+                  Tick {tick === null ? "?" : `${formatDecimal(tick * HUNDRED)}¢`}
+                  {market.minSize ? ` · min ${market.minSize} shares` : ""}
+                </div>
+              </>
             ) : null}
-            <label className={styles.check}>
-              <input type="checkbox" checked={postOnly} onChange={(e) => setPostOnly(e.target.checked)} />
-              Post only
-              <span className={styles.muted}>Rejected instead of filling immediately</span>
-            </label>
-          </>
-        ) : null}
-      </fieldset>
+          </fieldset>
 
-      <dl className={styles.summary}>
-        <div><dt>Avg price</dt><dd className="num">{est?.avg ? centsOf(est.avg) : "-"}</dd></div>
-        <div><dt>Shares</dt><dd className="num">{est ? `${kind === "MARKET" && side === "BUY" ? "~" : ""}${fmtShares(formatDecimal(est.shares))}` : "-"}</dd></div>
-        <div><dt>{side === "BUY" ? "Est. cost" : "Est. proceeds"}</dt><dd className="num">{est ? usd(est.total) : "-"}</dd></div>
-        {side === "BUY" ? <div className={styles.payout}><dt>To win if {outcome.label} wins</dt><dd className="num">{est ? usd(mulFloor(est.shares, ONE)) : "-"}</dd></div> : null}
-      </dl>
-      {est && !est.complete && kind === "MARKET" ? <div className={styles.warn}>Order book is too thin to fill this in full.</div> : null}
-      {request && check && !check.ok ? <div className={styles.bad} data-testid="ticket-error">{check.message}</div> : null}
+          <dl className={styles.summary}>
+            <dt>Avg price</dt><dd>{est?.avg ? centsOf(est.avg) : "-"}</dd>
+            <dt>Shares</dt><dd>{sharesText}</dd>
+            <dt>{side === "BUY" ? "Est. cost" : "Est. proceeds"}</dt><dd>{est ? usd(est.total) : "-"}</dd>
+            {yesWins ? (
+              <>
+                <dt>To win if {outcome.label} wins</dt>
+                <dd className={styles.win}>{usd(payout)}{winPercent !== null ? ` (${winPercent >= 0 ? "+" : ""}${winPercent.toLocaleString("en-US")}%)` : ""}</dd>
+              </>
+            ) : null}
+          </dl>
+          {est && !est.complete && kind === "MARKET" ? <div className={styles.warn}>Order book is too thin to fill this in full.</div> : null}
+          {request && check && !check.ok ? <div className={styles.errorNote} data-testid="ticket-error">{check.message}</div> : null}
 
-      <button type="button" className={`btn ${side === "BUY" ? "btn-yes" : "btn-no"} ${styles.submit}`} disabled={!canSubmit} onClick={() => { setSubmitError(null); setConfirming(true); }}>
-        Review {side === "BUY" ? "buy" : "sell"} order
-      </button>
+          <button
+            type="button"
+            className={`${styles.cta} ${side === "BUY" ? styles.ctaBuy : styles.ctaSell}`}
+            disabled={!canSubmit}
+            onClick={() => { setSubmitError(null); setConfirming(true); }}
+          >
+            {cta}
+          </button>
+        </>
+      )}
+      <p className={styles.footer}>
+        {maxOrderUsdc !== null ? `Max $${maxOrderUsdc} per order · you` : "You"} confirm before anything is sent
+      </p>
 
       <div className={styles.position}>
-        <span className="lbl">Your position</span>
-        <dl className={styles.summary}>
-          <div><dt>Held ({outcome.label})</dt><dd className="num" data-testid="held">{held.data === null ? (held.error ? "?" : "…") : fmtShares(held.data)}</dd></div>
-        </dl>
+        <span className={styles.lbl}>Your position</span>
+        <div className={styles.posGrid}>
+          <span className={styles.muted}>Held ({outcome.label})</span>
+          <span className="num" data-testid="held">{held.data === null ? (held.error ? "?" : "…") : fmtShares(held.data)}</span>
+          {pos ? (
+            <>
+              <span className={styles.muted}>Avg / Now</span>
+              <span className="num">{formatCents(pos.avgPrice)} / {formatCents(pos.currentPrice)}</span>
+              <span className={styles.muted}>Value · PnL</span>
+              <span className="num">
+                {formatUsd(pos.currentValue)} <span className={styles[pnlTone(pos.pnl)]}>{formatSignedUsd(pos.pnl)}</span>
+              </span>
+            </>
+          ) : null}
+        </div>
       </div>
 
-      {placed ? (
-        <div className={styles.placed} role="status" data-testid="placed">
-          Order {placed.orderId.slice(0, 10)}… placed ({placed.status}).
-          {settlingId === placed.orderId ? " Settling…" : placed.settling ? " Settled; positions refreshed." : ""}
+      {placed && placedInfo ? (
+        <div className={styles.toast} role="status" data-testid="placed">
+          <span className={styles.toastIcon} aria-hidden="true">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12l5 5 9-10" /></svg>
+          </span>
+          <div className={styles.toastBody}>
+            <strong>{placedInfo.side === "BUY" ? "Buy" : "Sell"} order placed · {placed.status.toLowerCase()}</strong>
+            <span className={styles.muted}>
+              {placedInfo.shares} {placedInfo.outcome} · {placedInfo.market} at ~{placedInfo.avg}.
+              {settlingId === placed.orderId
+                ? " Settling on-chain; positions refresh when done."
+                : placed.settling
+                  ? " Settled; positions refreshed."
+                  : ""}
+            </span>
+            <Link href="/portfolio">View in portfolio →</Link>
+          </div>
+          <button type="button" className={styles.toastClose} aria-label="Dismiss" onClick={() => setPlaced(null)}>×</button>
         </div>
       ) : null}
 
       {confirming ? (
         <ConfirmDialog
           title="Confirm order"
+          badge={side}
+          badgeTone={side === "BUY" ? "mint" : "coral"}
+          subtitle={<strong>{market.title} · {outcome.label}</strong>}
+          detail={eventTitle}
           rows={rows}
+          variant={side === "BUY" ? "primary" : "danger"}
           confirmLabel={`Place ${side === "BUY" ? "buy" : "sell"} order`}
           busy={submitting}
           error={submitError}

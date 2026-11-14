@@ -34,7 +34,7 @@ function binaryTop(market: MarketSource): EventCard["top"] {
   const labelled = market.outcomes ? toOutcomes(market) : [];
   // Fall back to raw outcomes when ids are missing: the card only displays, it never trades.
   const source = labelled.length > 0 ? labelled : [market.outcomes?.yes, market.outcomes?.no];
-  return source.flatMap((o) => (o ? [{ label: o.label, price: cleanPrice(o.price) }] : []));
+  return source.flatMap((o) => (o ? [{ label: o.label, price: cleanPrice(o.price), assetId: "assetId" in o ? o.assetId : null }] : []));
 }
 
 /** Pure: no SDK calls, never throws on missing fields. */
@@ -53,6 +53,7 @@ export function toEventCard(event: EventCardSource): EventCard {
       .map((m) => ({
         label: m.groupItemTitle || m.question || m.slug || m.id,
         price: cleanPrice(m.outcomes?.yes?.price),
+        assetId: m.outcomes ? (toOutcomes(m)[0]?.assetId ?? null) : null,
       }));
   }
   return {

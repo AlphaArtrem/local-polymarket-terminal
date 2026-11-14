@@ -56,23 +56,26 @@ export function useBook(assetId: string, refreshToken: number): Loaded<BookDTO> 
 
 const MAX_POSITION_PAGES = 10;
 
-/** Shares held of `assetId` from /api/positions (pages followed). Null until known. */
-export function useHeld(assetId: string, enabled: boolean, refreshToken: number): Loaded<string> {
-  const [state, setState] = useState<Loaded<string>>({ data: null, error: null });
+/** `position` is null when the account holds nothing of the asset; `data` itself is null until known. */
+export type HeldPosition = { position: PositionDto | null };
+
+/** The open position for `assetId` from /api/positions (pages followed). */
+export function usePosition(assetId: string, enabled: boolean, refreshToken: number): Loaded<HeldPosition> {
+  const [state, setState] = useState<Loaded<HeldPosition>>({ data: null, error: null });
   useEffect(() => {
     if (!enabled) return;
     const controller = new AbortController();
-    (async () => {
+    (async (): Promise<HeldPosition> => {
       let cursor: string | null = null;
       for (let i = 0; i < MAX_POSITION_PAGES; i++) {
         const suffix: string = cursor ? `&cursor=${encodeURIComponent(cursor)}` : "";
         const page: Page<PositionDto> = await getJson(`/api/positions?status=OPEN${suffix}`, controller.signal);
         const hit = page.items.find((p) => p.assetId === assetId);
-        if (hit) return hit.size;
+        if (hit) return { position: hit };
         cursor = page.nextCursor;
         if (!cursor) break;
       }
-      return "0";
+      return { position: null };
     })()
       .then((data) => setState({ data, error: null }))
       .catch((err: unknown) => {
@@ -82,4 +85,27 @@ export function useHeld(assetId: string, enabled: boolean, refreshToken: number)
     return () => controller.abort();
   }, [assetId, enabled, refreshToken]);
   return state;
+}
+
+/** Shares held of `assetId` ("0" when none). Null until known. */
+export function useHeld(assetId: string, enabled: boolean, refreshToken: number): Loaded<string> {
+  const { data, error } = usePosition(assetId, enabled, refreshToken);
+  return { data: data ? (data.position?.size ?? "0") : null, error };
+}
+
+/** pUSD cash balance (dollars, decimal string) from /api/account; null until known or when unavailable. */
+export function useBalance(enabled: boolean, refreshToken: number): string | null {
+  const [balance, setBalance] = useState<string | null>(null);
+  useEffect(() => {
+    if (!enabled) return;
+    const controller = new AbortController();
+    getJson<{ balance: string }>("/api/account", controller.signal)
+      .then((a) => setBalance(a.balance))
+      .catch((err: unknown) => {
+        // The Max chip just stays disabled; log without any account data.
+        if (!controller.signal.aborted) console.error("balance load failed", err instanceof Error ? err.message : "unknown");
+      });
+    return () => controller.abort();
+  }, [enabled, refreshToken]);
+  return balance;
 }

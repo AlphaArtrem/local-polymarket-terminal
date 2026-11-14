@@ -88,10 +88,15 @@ export function AlertsRunner() {
     <div className={styles.toasts} role="status" aria-live="polite">
       {toasts.map((t) => (
         <div key={t.id} className={styles.toast}>
-          <a href={t.href}>{t.text}</a>
+          <span className={styles.dot} aria-hidden="true" />
+          <div className={styles.toastBody}>
+            <div className={`lbl ${styles.toastLabel}`}>Price alert</div>
+            <a className={styles.toastLink} href={t.href}>{t.text}</a>
+          </div>
           <button
             type="button"
             aria-label="Dismiss"
+            className={`chip ${styles.toastClose}`}
             onClick={() => setToasts((prev) => prev.filter((x) => x.id !== t.id))}
           >
             ×

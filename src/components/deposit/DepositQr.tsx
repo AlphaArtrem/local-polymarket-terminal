@@ -7,20 +7,20 @@ export function DepositQr({ address }: { address: string }) {
   const m = useMemo(() => qrMatrix(qrPayload(address)), [address]);
   return (
     <figure className={styles.qr}>
-      <svg
-        role="img"
-        aria-label="QR code of the deposit address"
-        width={200}
-        height={200}
-        viewBox={`0 0 ${m.size} ${m.size}`}
-        shapeRendering="crispEdges"
-      >
-        <rect width={m.size} height={m.size} fill="#ffffff" />
-        <path d={qrPath(m)} fill="#000000" />
-      </svg>
-      <figcaption className={styles.muted}>
-        Scan to copy this address. Send only USDC or USDC.e on Polygon.
-      </figcaption>
+      <div className={styles.qrBox}>
+        <svg
+          role="img"
+          aria-label="QR code of the deposit address"
+          width={180}
+          height={180}
+          viewBox={`0 0 ${m.size} ${m.size}`}
+          shapeRendering="crispEdges"
+        >
+          <rect width={m.size} height={m.size} fill="#ffffff" />
+          <path d={qrPath(m)} fill="#000000" />
+        </svg>
+      </div>
+      <figcaption>Scan to copy this address</figcaption>
     </figure>
   );
 }

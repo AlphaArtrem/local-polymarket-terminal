@@ -1,0 +1,29 @@
+/* Bottom panel (Main.dc.html "Account activity"). */
+.panel { margin: 0; min-width: 0; }
+.tabs { display: flex; gap: 22px; padding: 0 16px; border-bottom: 1px solid #222931; flex-wrap: wrap; align-items: center; }
+.tab { font: inherit; font-size: 12px; font-weight: 600; color: #93a0ad; background: transparent; border: 0; border-bottom: 2px solid transparent; padding: 10px 2px; cursor: pointer; min-height: 40px; }
+.tab[aria-selected="true"] { color: #e6eaee; border-bottom-color: #4fd1a5; }
+.tab:focus-visible { outline: 2px solid #4fd1a5; outline-offset: 2px; }
+.tools { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+.scope { font-size: 12px; color: #c7d0d9; background: #181d23; border: 1px solid #2a323b; border-radius: 999px; padding: 0 10px; min-height: 30px; display: inline-flex; align-items: center; }
+.scroll { overflow-x: auto; }
+.table { width: 100%; border-collapse: collapse; min-width: 760px; }
+.table th { font-weight: 600; font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; color: #93a0ad; text-align: left; padding: 8px 12px; border-bottom: 1px solid #222931; white-space: nowrap; }
+.table td { padding: 10px 12px; border-bottom: 1px solid #1a2027; white-space: nowrap; }
+.table tbody tr:hover { background: #161b21; }
+.num { text-align: right !important; font-family: var(--font-num, "JetBrains Mono", ui-monospace, monospace); font-variant-numeric: tabular-nums; }
+.sub { color: #93a0ad; font-size: 11px; }
+.tag { font-size: 11px; font-weight: 700; border-radius: 5px; padding: 2px 6px; color: #e6eaee; background: #1e252d; }
+.tagYes { color: #4fd1a5; background: #12251f; }
+.tagNo { color: #ff8f73; background: #2a1712; }
+.pos { color: #4fd1a5; }
+.neg { color: #ff8f73; }
+.flat { color: #93a0ad; }
+.rowActions { display: inline-flex; gap: 6px; align-items: center; }
+.chip { font: inherit; font-size: 12px; color: #c7d0d9; background: #181d23; border: 1px solid #2a323b; border-radius: 999px; padding: 0 10px; min-height: 30px; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; }
+.chip:hover { border-color: #4fd1a5; color: #e6eaee; }
+.chip:focus-visible { outline: 2px solid #4fd1a5; outline-offset: 2px; }
+.state { padding: 28px 16px; text-align: center; color: #93a0ad; }
+.error { padding: 12px 16px; color: #ffc2b3; }
+.link { color: #8fe3c4; text-decoration: none; }
+.link:hover { color: #c2f2df; }

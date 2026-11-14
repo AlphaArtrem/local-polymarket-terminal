@@ -45,7 +45,7 @@ export type KeyContext = {
 export type KeyResult = { action: ShortcutAction | null; pendingG: number | null };
 
 const MODIFIER_KEYS = new Set(["Shift", "Control", "Alt", "Meta", "AltGraph", "CapsLock"]);
-const CHORD_TARGETS: Record<string, string> = { b: "/", p: "/portfolio", a: "/alerts" };
+const CHORD_TARGETS: Record<string, string> = { m: "/", p: "/portfolio", a: "/alerts" };
 
 export function resolveKey(k: KeyInput, ctx: KeyContext): KeyResult {
   const none = (pendingG: number | null = null): KeyResult => ({ action: null, pendingG });
@@ -86,18 +86,30 @@ export function resolveKey(k: KeyInput, ctx: KeyContext): KeyResult {
   }
 }
 
-export type HelpRow = { keys: string[]; joiner: "then" | "or"; label: string; singleKey: boolean };
+/** `keys` are shown as adjacent key caps ("then" puts a joiner between them); `alt` is a single-key alternative shown after "or". */
+export type HelpRow = { keys: string[]; joiner: "then" | "or"; label: string; singleKey: boolean; alt?: string };
+export type HelpGroup = { title: string; rows: readonly HelpRow[] };
 
-export const HELP_ROWS: readonly HelpRow[] = [
-  { keys: ["⌘K", "Ctrl K"], joiner: "or", label: "Focus search", singleKey: false },
-  { keys: ["/"], joiner: "or", label: "Focus search", singleKey: true },
-  { keys: ["g", "b"], joiner: "then", label: "Go to Trade", singleKey: true },
-  { keys: ["g", "p"], joiner: "then", label: "Go to Portfolio", singleKey: true },
-  { keys: ["g", "a"], joiner: "then", label: "Go to Alerts", singleKey: true },
-  { keys: ["b"], joiner: "or", label: "Ticket: Buy, focus first field", singleKey: true },
-  { keys: ["s"], joiner: "or", label: "Ticket: Sell, focus first field", singleKey: true },
-  { keys: ["y"], joiner: "or", label: "Select first outcome (Yes)", singleKey: true },
-  { keys: ["n"], joiner: "or", label: "Select second outcome (No)", singleKey: true },
-  { keys: ["?"], joiner: "or", label: "Show this help", singleKey: true },
-  { keys: ["Esc"], joiner: "or", label: "Close a dialog or leave search", singleKey: false },
+/** Help dialog content, as drawn: two columns. `singleKey` rows dim when single-key shortcuts are off. */
+export const HELP_GROUPS: readonly HelpGroup[] = [
+  {
+    title: "Navigate",
+    rows: [
+      { keys: ["⌘", "K"], alt: "/", joiner: "or", label: "Focus search", singleKey: false },
+      { keys: ["g", "m"], joiner: "then", label: "Go to Markets", singleKey: true },
+      { keys: ["g", "p"], joiner: "then", label: "Go to Portfolio", singleKey: true },
+      { keys: ["g", "a"], joiner: "then", label: "Go to Alerts", singleKey: true },
+      { keys: ["?"], joiner: "or", label: "Show this help", singleKey: true },
+      { keys: ["Esc"], joiner: "or", label: "Close a dialog or leave search", singleKey: false },
+    ],
+  },
+  {
+    title: "Trade ticket",
+    rows: [
+      { keys: ["b"], joiner: "or", label: "Buy, focus first field", singleKey: true },
+      { keys: ["s"], joiner: "or", label: "Sell, focus first field", singleKey: true },
+      { keys: ["y"], joiner: "or", label: "Select Yes (first outcome)", singleKey: true },
+      { keys: ["n"], joiner: "or", label: "Select No (second outcome)", singleKey: true },
+    ],
+  },
 ];

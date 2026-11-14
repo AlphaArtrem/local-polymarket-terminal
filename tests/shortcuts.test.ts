@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ACTION_KINDS, G_CHORD_MS, resolveKey, type KeyContext, type KeyInput } from "@/lib/shortcuts";
+import { ACTION_KINDS, G_CHORD_MS, HELP_GROUPS, resolveKey, type KeyContext, type KeyInput } from "@/lib/shortcuts";
 
 const key = (k: string, o: Partial<KeyInput> = {}): KeyInput => ({
   key: k, meta: false, ctrl: false, alt: false, shift: false, isComposing: false, repeat: false, targetEditable: false, ...o,
@@ -40,12 +40,14 @@ describe("resolveKey", () => {
   it("g chord navigates within the window and expires after 1.5 s", () => {
     const first = resolveKey(key("g"), ctx());
     expect(first).toEqual({ action: null, pendingG: 10_000 });
-    const hrefs = { b: "/", p: "/portfolio", a: "/alerts" };
+    const hrefs = { m: "/", p: "/portfolio", a: "/alerts" };
     for (const [k, href] of Object.entries(hrefs)) {
       expect(resolveKey(key(k), ctx({ pendingG: 10_000, now: 10_000 + G_CHORD_MS }))).toEqual({
         action: { kind: "navigate", href }, pendingG: null,
       });
     }
+    // The old "g b" chord is gone: "b" after "g" is just Buy.
+    expect(resolveKey(key("b"), ctx({ pendingG: 10_000, now: 10_500 })).action).toEqual({ kind: "buy" });
     // Expired: "b" falls through to Buy, not navigation.
     expect(resolveKey(key("b"), ctx({ pendingG: 10_000, now: 10_000 + G_CHORD_MS + 1 })).action).toEqual({ kind: "buy" });
     expect(resolveKey(key("p"), ctx({ pendingG: 10_000, now: 12_000 })).action).toBeNull();
@@ -77,5 +79,13 @@ describe("resolveKey", () => {
   it("action kinds are exactly the allow-list (nothing submit-like)", () => {
     expect([...ACTION_KINDS]).toEqual(["focusSearch", "navigate", "openHelp", "buy", "sell", "outcome"]);
     expect(ACTION_KINDS.some((k) => /submit|confirm|review|place|send/i.test(k))).toBe(false);
+  });
+
+  it("help groups are Navigate and Trade ticket and list the g m chord", () => {
+    expect(HELP_GROUPS.map((g) => g.title)).toEqual(["Navigate", "Trade ticket"]);
+    const labels = HELP_GROUPS.flatMap((g) => g.rows.map((r) => `${r.keys.join(" ")}|${r.label}`));
+    expect(labels).toContain("g m|Go to Markets");
+    expect(HELP_GROUPS[0].rows[0]).toMatchObject({ keys: ["⌘", "K"], alt: "/" });
+    expect(labels.some((l) => l.startsWith("g b"))).toBe(false);
   });
 });

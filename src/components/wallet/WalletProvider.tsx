@@ -53,7 +53,11 @@ export function WalletProvider({ mode, children }: { mode: AccountMode; children
   const [version, setVersion] = useState(0);
   const [connectOpen, setConnectOpen] = useState(false);
   const [chainWarning, setChainWarning] = useState(false);
+  /** Address shared during connect, shown in the signing dialog's step list. */
+  const [connectAccount, setConnectAccount] = useState<string | null>(null);
   const [pending, setPending] = useState<{ sign: PendingSign; cancel: () => void } | null>(null);
+  // Counts wallet requests within one signing fetch so multi-transaction flows can show progress.
+  const [requestCount, setRequestCount] = useState(0);
 
   const controllerRef = useRef<WalletController | null>(null);
   const unsubscribeRef = useRef<(() => void) | null>(null);
@@ -163,9 +167,13 @@ export function WalletProvider({ mode, children }: { mode: AccountMode; children
 
   const signingFetch = useCallback(
     async (url: string, init: RequestInit = {}) => {
+      setRequestCount(0);
       const res = await walletFetch(url, init, {
         controller: controllerRef.current,
-        onPending: (p, cancel) => setPending(p ? { sign: p, cancel } : null),
+        onPending: (p, cancel) => {
+          if (p) setRequestCount((n) => n + 1);
+          setPending(p ? { sign: p, cancel } : null);
+        },
       });
       if (mode === "wallet" && res.status === 401) {
         const body: unknown = await res.clone().json().catch(() => null);
@@ -185,6 +193,7 @@ export function WalletProvider({ mode, children }: { mode: AccountMode; children
         const address = firstAddress(await detail.provider.request({ method: "eth_requestAccounts" }));
         if (!address) throw new Error("The wallet returned no account.");
         attach(detail, address);
+        setConnectAccount(address);
         const wallet = accountWallet?.trim();
         const res = await signingFetch("/api/wallet/session", {
           method: "POST",
@@ -204,6 +213,7 @@ export function WalletProvider({ mode, children }: { mode: AccountMode; children
         setError(describeError(err));
       } finally {
         setBusy(false);
+        setConnectAccount(null);
       }
     },
     [mode, attach, detach, signingFetch, refreshInfo],
@@ -231,9 +241,11 @@ export function WalletProvider({ mode, children }: { mode: AccountMode; children
       closeConnect,
       connect,
       disconnect,
+      pendingSummary: pending?.sign.summary ?? null,
+      requestCount,
       fetch: signingFetch,
     }),
-    [mode, info, ready, providers, walletName, busy, error, version, connectOpen, openConnect, closeConnect, connect, disconnect, signingFetch],
+    [mode, info, ready, providers, walletName, busy, error, version, connectOpen, openConnect, closeConnect, connect, disconnect, signingFetch, pending, requestCount],
   );
 
   return (
@@ -241,13 +253,22 @@ export function WalletProvider({ mode, children }: { mode: AccountMode; children
       {chainWarning ? (
         <div className={styles.banner} role="alert">
           <span>Your wallet is not on Polygon. Signing will ask to switch networks.</span>
-          <button type="button" className="btn btn-ghost" onClick={() => void controllerRef.current?.ensurePolygon().catch(() => setChainWarning(true))}>
+          <button type="button" className="btn btn-amber" onClick={() => void controllerRef.current?.ensurePolygon().catch(() => setChainWarning(true))}>
             Switch to Polygon
           </button>
         </div>
       ) : null}
       {children}
-      {pending ? <WalletPrompt walletName={walletName ?? "your wallet"} pending={pending.sign} onCancel={pending.cancel} /> : null}
+      {pending ? (
+        <WalletPrompt
+          walletName={walletName ?? "your wallet"}
+          icon={providers.find((p) => p.info.name === walletName)?.info.icon}
+          pending={pending.sign}
+          onCancel={pending.cancel}
+          connecting={busy}
+          account={connectAccount}
+        />
+      ) : null}
     </WalletContext.Provider>
   );
 }

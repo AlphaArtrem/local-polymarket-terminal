@@ -1,16 +1,14 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import type { EventDTO, MarketDTO, SelectedOutcome } from "@/lib/market";
-import { cents, pct, shortDate, usd } from "./fmt";
-import { AlertButton } from "../alerts/AlertButton";
-import { AutomateSection } from "../automation/AutomateSection";
+import { ActivityPanel } from "./ActivityPanel";
+import { MarketStrip } from "./MarketStrip";
 import { OrderBook } from "./OrderBook";
+import { OutcomesRail } from "./OutcomesRail";
 import { PriceChart } from "./PriceChart";
 import { TradeTape } from "./TradeTape";
 import { TradeTicket } from "./TradeTicket";
-import { StarButton } from "../watchlist/StarButton";
-import { YourOrders } from "./YourOrders";
 import type { AccountMode } from "@/lib/wallet-protocol";
 import { useWallet } from "../wallet/useWallet";
 import styles from "./market.module.css";
@@ -23,6 +21,8 @@ type Props = {
   /** Key mode: server-known. Ignored in wallet mode, where a connected session decides. */
   configured: boolean;
   mode?: AccountMode;
+  /** Server cap per order (MAX_ORDER_USDC), shown in the ticket footer. */
+  maxOrderUsdc?: number | null;
 };
 
 const yesPrice = (m: MarketDTO) => Number(m.outcomes[0]?.price ?? -1);
@@ -37,7 +37,7 @@ function locate(markets: MarketDTO[], assetId: string | undefined) {
   return null;
 }
 
-export function MarketView({ event, markets, initialAssetId, initialSide, configured: serverConfigured, mode = "key" }: Props) {
+export function MarketView({ event, markets, initialAssetId, initialSide, configured: serverConfigured, mode = "key", maxOrderUsdc = null }: Props) {
   const wallet = useWallet();
   const configured = mode === "wallet" ? wallet.connected : serverConfigured;
   const sorted = useMemo(() => [...markets].sort((a, b) => yesPrice(b) - yesPrice(a)), [markets]);
@@ -50,6 +50,10 @@ export function MarketView({ event, markets, initialAssetId, initialSide, config
   const topListed = useMemo(() => sorted.find((m) => m.listed)?.id ?? null, [sorted]);
   const [marketId, setMarketId] = useState<string | null>(initial?.marketId ?? topListed);
   const [side, setSide] = useState(initial?.side ?? 0);
+  const [sellToken, setSellToken] = useState(0);
+  // After a Close click a remounted ticket (market change) must open on Sell too.
+  const [closing, setClosing] = useState(false);
+  const filterRef = useRef<HTMLInputElement>(null);
 
   const needle = filter.trim().toLowerCase();
   // The selected market stays visible even if unlisted (e.g. opened via ?asset=).
@@ -62,112 +66,52 @@ export function MarketView({ event, markets, initialAssetId, initialSide, config
   const outcome = market ? (market.outcomes[side] ?? market.outcomes[0] ?? null) : null;
   const selected: SelectedOutcome | null = market && outcome ? { market, outcome } : null;
 
-  const yes = outcome?.label ?? "";
   const isNo = side === 1;
+
+  // "Close" in the positions list: select that outcome and put the ticket on Sell.
+  const closePosition = useCallback(
+    (assetId: string) => {
+      const hit = locate(markets, assetId);
+      if (!hit) return;
+      setMarketId(hit.marketId);
+      setSide(hit.side);
+      setSellToken((n) => n + 1);
+      setClosing(true);
+    },
+    [markets],
+  );
 
   return (
     <div className={styles.page}>
-      <header className={`card ${styles.strip}`}>
-        <div className={styles.identity}>
-          {event.image ? (
-            // eslint-disable-next-line @next/next/no-img-element -- remote Polymarket CDN image, no next/image config
-            <img src={event.image} alt="" className={styles.eventImage} width={44} height={44} />
-          ) : null}
-          <div>
-            <h1 className={styles.title}>{event.title}</h1>
-            <div className={styles.selectedName}>{market ? market.title : "Select an outcome"}</div>
-          </div>
-        </div>
-        {market && outcome ? (
-          <div className={styles.priceBlock} aria-label="Selected outcome price">
-            <span className={`num ${styles.bigPrice}`}>{cents(outcome.price)}</span>
-            <span className={`${styles.sideTag} ${isNo ? "neg" : "pos"}`}>{yes}</span>
-          </div>
-        ) : null}
-        <dl className={styles.stats} style={{ margin: 0 }}>
-          <div className={styles.stat}><dt className="lbl">Volume</dt><dd className="num" style={{ margin: 0 }}>{usd(market?.volume ?? event.volume)}</dd></div>
-          <div className={styles.stat}><dt className="lbl">Ends</dt><dd className="num" style={{ margin: 0 }}>{shortDate(market?.endDate ?? event.endDate)}</dd></div>
-          <div className={styles.stat}><dt className="lbl">Markets</dt><dd className="num" style={{ margin: 0 }}>{markets.length - hiddenCount}</dd></div>
-        </dl>
-        {market && outcome ? (
-          <AlertButton
-            key={`alert-${outcome.assetId}`}
-            assetId={outcome.assetId}
-            label={`${market.title} · ${outcome.label}`}
-            eventSlug={event.slug}
-            currentPrice={outcome.price}
-          />
-        ) : null}
-        {market && outcome ? (
-          <StarButton
-            key={`star-${outcome.assetId}`}
-            label={`${market.title} · ${outcome.label}`}
-            item={{
-              kind: "outcome",
-              assetId: outcome.assetId,
-              label: `${market.title} · ${outcome.label}`,
-              eventSlug: event.slug,
-              eventTitle: event.title,
-              priceAtAdd: outcome.price,
-            }}
-          />
-        ) : (
-          <StarButton label={event.title} item={{ kind: "event", eventSlug: event.slug, eventTitle: event.title }} />
-        )}
-      </header>
+      <MarketStrip event={event} market={market} outcome={outcome} isNo={isNo} onPickOutcome={() => filterRef.current?.focus()} />
 
       <div className={styles.workspace}>
-        <section className={`card ${styles.rail}`} aria-label="Outcomes">
-          <div className={styles.railHead}>
-            <span className="lbl">Outcomes ({visible.length})</span>
-            <input
-              className={`input ${styles.filter}`}
-              placeholder="Filter markets"
-              aria-label="Filter markets"
-              value={filter}
-              onChange={(e) => setFilter(e.target.value)}
-            />
-            {hiddenCount > 0 ? (
-              <label className={styles.toggleRow}>
-                <input type="checkbox" checked={showInactive} onChange={(e) => setShowInactive(e.target.checked)} /> Show{" "}
-                {hiddenCount} inactive placeholder markets
-              </label>
-            ) : null}
-          </div>
-          <ul className={styles.list}>
-            {visible.map((m) => (
-              <li key={m.id}>
-                <button
-                  type="button"
-                  className={styles.outcome}
-                  aria-pressed={m.id === marketId}
-                  onClick={() => {
-                    setMarketId(m.id);
-                    setSide(0);
-                  }}
-                >
-                  <span className={styles.outcomeTop}>
-                    <span className={styles.outcomeName}>{m.title}</span>
-                    <span className={`num ${styles.outcomeYes}`}>{cents(m.outcomes[0]?.price)}</span>
-                  </span>
-                  <span className={styles.bar} aria-hidden="true">
-                    <span className={styles.barFill} style={{ display: "block", width: `${pct(m.outcomes[0]?.price)}%` }} />
-                  </span>
-                  <span className={styles.outcomeBottom}>
-                    <span className="num">{usd(m.volume)} vol</span>
-                    <span className={`num ${styles.outcomeNo}`}>No {cents(m.outcomes[1]?.price)}</span>
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ul>
-          {visible.length === 0 ? <div className={styles.empty}>No markets match.</div> : null}
-        </section>
+        <OutcomesRail
+          markets={visible}
+          selectedId={marketId}
+          filter={filter}
+          onFilter={setFilter}
+          hiddenCount={hiddenCount}
+          showInactive={showInactive}
+          onToggleInactive={() => setShowInactive((v) => !v)}
+          onPick={(id) => {
+            setMarketId(id);
+            setSide(0);
+            setClosing(false);
+          }}
+          filterRef={filterRef}
+        />
 
         <section className={styles.centre} aria-label="Market data">
           {market && outcome ? (
             <>
-              <PriceChart key={`chart-${outcome.assetId}`} assetId={outcome.assetId} label={outcome.label} />
+              <PriceChart
+                assetId={outcome.assetId}
+                label={outcome.label}
+                outcomes={market.outcomes}
+                outcomeIndex={side}
+                onOutcomeChange={setSide}
+              />
               <div className={styles.books}>
                 <OrderBook key={outcome.assetId} assetId={outcome.assetId} label={outcome.label} />
                 <TradeTape key={`tape-${outcome.assetId}`} assetId={outcome.assetId} />
@@ -178,35 +122,24 @@ export function MarketView({ event, markets, initialAssetId, initialSide, config
           )}
         </section>
 
-        <aside className={styles.ticketPane} data-slot="trade-ticket" data-asset-id={selected?.outcome.assetId}>
+        <aside className={`${styles.ticketPane}`} data-slot="trade-ticket" data-asset-id={selected?.outcome.assetId}>
           <TradeTicket
             key={market?.id ?? "none"}
             selected={selected}
             configured={configured}
-            initialSide={initialSide}
+            initialSide={closing ? "SELL" : initialSide}
             outcomeIndex={side}
             onOutcomeChange={setSide}
+            eventTitle={event.title}
+            eventSlug={event.slug}
+            maxOrderUsdc={maxOrderUsdc}
+            accountMode={mode}
+            sellToken={sellToken}
           />
-          {configured && mode === "key" && market?.conditionId && outcome ? (
-            <div className={`card ${styles.panel}`} aria-label="Pro tools">
-              <div className={styles.panelHead}>
-                <span className="lbl">Pro: automation</span>
-              </div>
-              <AutomateSection
-                key={`auto-${outcome.assetId}`}
-                assetId={outcome.assetId}
-                conditionId={market.conditionId}
-                label={`${market.title} · ${outcome.label}`}
-                eventSlug={event.slug}
-                currentPrice={outcome.price ?? null}
-              />
-            </div>
-          ) : null}
         </aside>
       </div>
-      {configured ? (
-        <YourOrders conditionIds={markets.map((m) => m.conditionId).filter((c): c is string => Boolean(c))} />
-      ) : null}
+
+      <ActivityPanel markets={markets} configured={configured} mode={mode} onClose={closePosition} />
     </div>
   );
 }

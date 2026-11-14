@@ -3,16 +3,26 @@
 import { useEffect, useMemo, useRef, useState, type PointerEvent } from "react";
 import { formatCents, formatFull, nearestPoint, rangeChange, scaleChart, type Padding } from "@/lib/chart";
 import { HISTORY_RANGES, type HistoryDTO, type HistoryRange, type PricePoint } from "@/lib/live-types";
+import { cents } from "./fmt";
 import styles from "./chart.module.css";
 
-const HEIGHT = 180;
+const HEIGHT = 240;
 const PADDING: Padding = { top: 8, right: 8, bottom: 18, left: 36 };
-const LABELS: Record<HistoryRange, string> = { "1h": "1H", "6h": "6H", "1d": "1D", "1w": "1W", "1m": "1M", max: "MAX" };
+const LABELS: Record<HistoryRange, string> = { "1h": "1H", "6h": "6H", "1d": "1D", "1w": "1W", "1m": "1M", max: "All" };
 
 /** `key` names the request a result belongs to; a result for another key counts as loading. */
 type Result = { key: string; error: string } | { key: string; error?: undefined; points: PricePoint[] };
 
-export function PriceChart({ assetId, label }: { assetId: string; label: string }) {
+type Props = {
+  assetId: string;
+  label: string;
+  /** Yes/No control: the chart follows the selected outcome. */
+  outcomes: { label: string; price: string | null }[];
+  outcomeIndex: number;
+  onOutcomeChange: (index: number) => void;
+};
+
+export function PriceChart({ assetId, label, outcomes, outcomeIndex, onOutcomeChange }: Props) {
   const [range, setRange] = useState<HistoryRange>("1d");
   const [result, setResult] = useState<Result | null>(null);
   const [width, setWidth] = useState(320);
@@ -73,16 +83,14 @@ export function PriceChart({ assetId, label }: { assetId: string; label: string 
   return (
     <section className={`card ${styles.chart}`} aria-label={`${label} price history`}>
       <div className={styles.header}>
-        <div className={styles.price}>
-          <span className={styles.title}>{label}</span>
-          {change && (
-            <>
-              <strong>{formatCents(change.last)}</strong>
-              <span className={change.change >= 0 ? styles.up : styles.down}>{changeText}</span>
-            </>
-          )}
+        <div className={styles.seg} role="group" aria-label="Outcome">
+          {outcomes.map((o, i) => (
+            <button key={o.label} type="button" aria-pressed={i === outcomeIndex} onClick={() => onOutcomeChange(i)}>
+              {o.label} <span className={styles.mono}>{cents(o.price)}</span>
+            </button>
+          ))}
         </div>
-        <div className={`pill-tabs ${styles.ranges}`}>
+        <div className={styles.ranges} role="group" aria-label="Range">
           {HISTORY_RANGES.map((r) => (
             <button key={r} type="button" aria-pressed={r === range} onClick={() => { setRange(r); setHoverT(null); }}>
               {LABELS[r]}
@@ -124,6 +132,18 @@ export function PriceChart({ assetId, label }: { assetId: string; label: string 
                 {tick.label}
               </text>
             ))}
+            <defs>
+              <linearGradient id={`fill-${assetId}`} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stopColor="#4FD1A5" stopOpacity=".22" />
+                <stop offset="1" stopColor="#4FD1A5" stopOpacity="0" />
+              </linearGradient>
+            </defs>
+            {points.length > 1 && (
+              <path
+                d={`${scale.path}L${scale.x(points[points.length - 1]!.t)} ${HEIGHT - PADDING.bottom}L${scale.x(points[0]!.t)} ${HEIGHT - PADDING.bottom}Z`}
+                fill={`url(#fill-${assetId})`}
+              />
+            )}
             <path className={styles.line} d={scale.path} />
             {points.length === 1 && <circle className={styles.dot} cx={scale.x(points[0]!.t)} cy={scale.y(Number(points[0]!.p))} r={3} />}
             {hover && (

@@ -1,12 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { toCents } from "@/lib/alerts";
 import { parseDecimal } from "@/lib/decimal";
 import type { NewRule } from "@/lib/phase8-types";
-import styles from "./automation.module.css";
+import styles from "./automate-tab.module.css";
 import {
   describeConfirm,
   describeRule,
@@ -35,12 +35,11 @@ type Props = {
 
 type Mode = "tpsl" | "twap";
 
-/** Popover form that arms an app-run take-profit/stop-loss or TWAP rule after an explicit confirm. */
+/** Inline form (ticket "Pro" tab) that arms an app-run take-profit/stop-loss or TWAP rule after an explicit confirm. */
 export function AutomatePanel({ assetId, conditionId, label, eventSlug, currentPrice, heldSize }: Props) {
   const held = heldSize !== null && (parseDecimal(heldSize) ?? 0n) > 0n ? heldSize : null;
   const target: RuleTarget = { assetId, conditionId, label, eventSlug };
 
-  const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<Mode>("tpsl");
   const [shares, setShares] = useState(held ? formatSize(held) : "");
   const [tp, setTp] = useState("");
@@ -87,101 +86,89 @@ export function AutomatePanel({ assetId, conditionId, label, eventSlug, currentP
   }
 
   const unit = side === "BUY" ? "pUSD" : "shares";
+  const field = (label: string, input: ReactNode) => (
+    <label className={styles.field}>
+      <span className={styles.lbl}>{label}</span>
+      <span className={styles.control}>{input}</span>
+    </label>
+  );
   return (
-    <span className={styles.wrap}>
-      <button type="button" className={`btn ${styles.trigger}`} aria-expanded={open} onClick={() => setOpen((v) => !v)}>
-        ⚙ Automate
-      </button>
-      {open && (
-        <form
-          className={styles.panel}
-          onSubmit={(e) => {
-            e.preventDefault();
-            review();
-          }}
-        >
-          <div className={`pill-tabs ${styles.tabs}`} role="group" aria-label="Rule type">
-            <button type="button" aria-pressed={mode === "tpsl"} onClick={() => setMode("tpsl")}>
-              Take-profit / Stop-loss
-            </button>
-            <button type="button" aria-pressed={mode === "twap"} onClick={() => setMode("twap")}>
-              TWAP
-            </button>
-          </div>
-          <div className={styles.hint}>
-            Run by this app, not Polymarket: only while it is running, as market orders, unattended.
-            After a restart rules stay paused until you resume them.
-          </div>
+    <>
+      <form
+        className={styles.form}
+        onSubmit={(e) => {
+          e.preventDefault();
+          review();
+        }}
+      >
+        <div className={styles.seg} role="group" aria-label="Automation type">
+          <button type="button" aria-pressed={mode === "tpsl"} onClick={() => setMode("tpsl")}>
+            TP / SL
+          </button>
+          <button type="button" aria-pressed={mode === "twap"} onClick={() => setMode("twap")}>
+            TWAP
+          </button>
+        </div>
 
-          {mode === "tpsl" ? (
-            held === null ? (
-              <div className={styles.hint}>Take-profit / stop-loss needs shares of this outcome; you hold none.</div>
-            ) : (
-              <>
-                <label className={styles.field}>
-                  Shares (max {formatSize(held)})
-                  <input className="input num" inputMode="decimal" value={shares} onChange={(e) => setShares(e.target.value)} />
-                </label>
-                <label className={styles.field}>
-                  Take-profit ¢
-                  <input className="input num" inputMode="decimal" value={tp} onChange={(e) => setTp(e.target.value)} placeholder="optional" />
-                </label>
-                <label className={styles.field}>
-                  Stop-loss ¢
-                  <input className="input num" inputMode="decimal" value={sl} onChange={(e) => setSl(e.target.value)} placeholder="optional" />
-                </label>
-                {currentPrice !== null && <div className={styles.hint}>Midpoint now {toCents(currentPrice)}¢</div>}
-              </>
-            )
+        {mode === "tpsl" ? (
+          held === null ? (
+            <div className={styles.hint}>Take-profit / stop-loss needs shares of this outcome; you hold none.</div>
           ) : (
             <>
-              <label className={styles.field}>
-                Side
-                <select className="input" value={side} onChange={(e) => setSide(e.target.value === "SELL" ? "SELL" : "BUY")}>
+              <div className={styles.grid}>
+                {field("Take profit ¢", <input aria-label="Take profit in cents" inputMode="decimal" value={tp} onChange={(e) => setTp(e.target.value)} placeholder="optional" />)}
+                {field("Stop loss ¢", <input aria-label="Stop loss in cents" inputMode="decimal" value={sl} onChange={(e) => setSl(e.target.value)} placeholder="optional" />)}
+              </div>
+              {field(
+                `Shares · held ${formatSize(held)}`,
+                <>
+                  <input aria-label="Shares to sell" inputMode="decimal" value={shares} onChange={(e) => setShares(e.target.value)} />
+                  <button type="button" className={styles.chip} onClick={() => setShares(formatSize(held))}>Max</button>
+                </>,
+              )}
+              {currentPrice !== null && <div className={styles.hint}>Midpoint now {toCents(currentPrice)}¢</div>}
+            </>
+          )
+        ) : (
+          <>
+            <div className={styles.grid}>
+              {field(
+                "Side",
+                <select aria-label="Side" value={side} onChange={(e) => setSide(e.target.value === "SELL" ? "SELL" : "BUY")}>
                   <option value="BUY">Buy</option>
                   <option value="SELL">Sell</option>
-                </select>
-              </label>
-              <label className={styles.field}>
-                Total ({unit})
-                <input className="input num" inputMode="decimal" value={total} onChange={(e) => setTotal(e.target.value)} />
-              </label>
-              <label className={styles.field}>
-                Slices ({MIN_SLICES}–{MAX_SLICES})
-                <input className="input num" inputMode="numeric" value={slices} onChange={(e) => setSlices(e.target.value)} />
-              </label>
-              <label className={styles.field}>
-                Interval, minutes ({MIN_INTERVAL_MIN}–{MAX_INTERVAL_MIN})
-                <input className="input num" inputMode="numeric" value={intervalMin} onChange={(e) => setIntervalMin(e.target.value)} />
-              </label>
-              <label className={styles.field}>
-                Price limit ¢
-                <input className="input num" inputMode="decimal" value={limit} onChange={(e) => setLimit(e.target.value)} placeholder="optional" />
-              </label>
-              {preview && (
-                <div className={styles.preview}>
-                  {preview.perSlice} {unit} per slice, over about {formatDuration(preview.durationSec)}
-                </div>
+                </select>,
               )}
-            </>
-          )}
-
-          {error && !pending && <div className={styles.error} role="alert">{error}</div>}
-          {armed && (
-            <div className={styles.ok} role="status">
-              Armed. <Link href="/automation">View rules</Link>
+              {field(`Total (${unit})`, <input aria-label={`Total in ${unit}`} inputMode="decimal" value={total} onChange={(e) => setTotal(e.target.value)} />)}
             </div>
-          )}
-          <div className={styles.row}>
-            <button type="submit" className="btn btn-primary" disabled={mode === "tpsl" && held === null}>
-              Review
-            </button>
-            <button type="button" className="btn btn-ghost" onClick={() => setOpen(false)}>
-              Close
-            </button>
+            <div className={styles.grid}>
+              {field(`Slices (${MIN_SLICES}–${MAX_SLICES})`, <input aria-label="Slices" inputMode="numeric" value={slices} onChange={(e) => setSlices(e.target.value)} />)}
+              {field(`Every (${MIN_INTERVAL_MIN}–${MAX_INTERVAL_MIN} min)`, <input aria-label="Interval in minutes" inputMode="numeric" value={intervalMin} onChange={(e) => setIntervalMin(e.target.value)} />)}
+            </div>
+            {field("Price limit ¢", <input aria-label="Price limit in cents" inputMode="decimal" value={limit} onChange={(e) => setLimit(e.target.value)} placeholder="optional" />)}
+            {preview && (
+              <div className={styles.preview}>
+                {preview.perSlice} {unit} per slice, over about {formatDuration(preview.durationSec)}
+              </div>
+            )}
+          </>
+        )}
+
+        <p className={styles.note}>
+          Run by this app, not Polymarket: only while it is running, as market orders, unattended. After a restart rules
+          stay paused until you resume them. Needs the server key.
+        </p>
+
+        {error && !pending && <div className={styles.error} role="alert">{error}</div>}
+        {armed && (
+          <div className={styles.ok} role="status">
+            Armed. <Link href="/automation">View rules</Link>
           </div>
-        </form>
-      )}
+        )}
+        <button type="submit" className={styles.cta} disabled={mode === "tpsl" && held === null}>
+          Review automation rule
+        </button>
+      </form>
       {pending && (
         <ConfirmDialog
           title="Arm automation rule?"
@@ -201,6 +188,6 @@ export function AutomatePanel({ assetId, conditionId, label, eventSlug, currentP
           }}
         />
       )}
-    </span>
+    </>
   );
 }

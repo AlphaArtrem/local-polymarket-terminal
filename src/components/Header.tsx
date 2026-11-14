@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { AlertsNavLink } from "./alerts/AlertsNavLink";
 import { AutomationNavLink } from "./automation/AutomationNavLink";
-import { AccessBadge } from "./AccessBadge";
 import { HeaderAccount } from "./HeaderAccount";
 import { NavLink } from "./NavLink";
 import { ConnectWallet } from "./wallet/ConnectWallet";
@@ -18,10 +17,10 @@ export function Header() {
           <rect x="1" y="1" width="24" height="24" rx="7" fill="#4FD1A5" />
           <path d="M7 17l4-5 3 3 5-7" stroke="#0B0E11" strokeWidth="2.4" fill="none" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
-        <span>Terminal</span>
+        <span>PM Terminal</span>
       </Link>
       <nav className={styles.nav} aria-label="Primary">
-        <NavLink href="/" alsoActiveUnder={["/market"]}>Trade</NavLink>
+        <NavLink href="/" alsoActiveUnder={["/market"]}>Markets</NavLink>
         <NavLink href="/portfolio">Portfolio</NavLink>
         <AlertsNavLink />
         <AutomationNavLink />
@@ -38,7 +37,6 @@ export function Header() {
       </div>
       <div className={styles.right}>
         <HelpButton />
-        <AccessBadge />
         <HeaderAccount />
         <ConnectWallet />
       </div>

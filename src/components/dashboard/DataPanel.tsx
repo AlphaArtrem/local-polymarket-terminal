@@ -22,46 +22,53 @@ type Props<T> = {
   refreshToken: number;
 };
 
+/** Table body of the Portfolio card: headers always show, empty/loading/error are centred rows. */
 export function DataPanel<T>({ endpoint, columns, rowKey, empty, refreshToken }: Props<T>) {
   const { items, error, loading, loadingMore, hasMore, loadMore } = usePagedApi<T>(endpoint, refreshToken);
 
   if (error?.code === "NOT_CONFIGURED") return <NotConfiguredHint />;
-  if (loading && items.length === 0) return <div className={styles.state}>Loading…</div>;
-  if (error && items.length === 0) return <div className={styles.error}>Error: {error.message}</div>;
-  if (items.length === 0) return <div className={styles.state}>{empty}</div>;
+
+  let message: ReactNode = null;
+  if (loading && items.length === 0) message = "Loading…";
+  else if (error && items.length === 0) message = <span className={styles.exportError}>Error: {error.message}</span>;
+  else if (items.length === 0) message = empty;
 
   return (
     <div>
-      {error ? <div className={styles.error}>Error: {error.message}</div> : null}
-      <div className={`card ${styles.panel}`}>
+      {error && items.length > 0 ? <div className={styles.error}>Error: {error.message}</div> : null}
       <div className={styles.tableWrap}>
-        <table className="table-dense">
+        <table className={styles.table}>
           <thead>
             <tr>
               {columns.map((c, i) => (
                 <th key={i} className={c.numeric ? "num" : undefined}>
-                  {c.header}
+                  {c.header ? c.header : <span className={styles.srOnly}>Actions</span>}
                 </th>
               ))}
             </tr>
           </thead>
           <tbody>
-            {items.map((row) => (
-              <tr key={rowKey(row)}>
-                {columns.map((c, i) => (
-                  <td
-                    key={i}
-                    data-slot={c.slot}
-                    className={[c.numeric ? "num" : "", c.wrap ? styles.titleCell : ""].join(" ").trim() || undefined}
-                  >
-                    {c.render(row)}
-                  </td>
-                ))}
+            {message !== null ? (
+              <tr>
+                <td colSpan={columns.length} className={styles.emptyRow}>{message}</td>
               </tr>
-            ))}
+            ) : (
+              items.map((row) => (
+                <tr key={rowKey(row)}>
+                  {columns.map((c, i) => (
+                    <td
+                      key={i}
+                      data-slot={c.slot}
+                      className={[c.numeric ? "num" : "", c.wrap ? styles.titleCell : ""].join(" ").trim() || undefined}
+                    >
+                      {c.render(row)}
+                    </td>
+                  ))}
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
-      </div>
       </div>
       {hasMore ? (
         <div className={styles.more}>

@@ -2,7 +2,7 @@
 
 A local Polymarket trading terminal: a website-like UI on `127.0.0.1` that talks to Polymarket's
 public APIs with the user's own wallet. All phases are built; [state.md](state.md) says what
-exists. **Phases 0–10 are done; no further phase is planned.**
+exists. **Phases 0–11 are done; no further phase is planned.**
 
 Each phase ends in a **demonstration**, not just green tests. Slices are sized for one
 implementer agent each, with explicit file ownership so parallel slices never touch the same file.
@@ -502,3 +502,19 @@ code is in `.next/static`. The user does the live checks listed in state.md.
 ## Later phases
 
 None planned. Candidates: trailing stops, order book depth chart, multi-account, WalletConnect.
+
+## Phase 11 — App matches the design canvas (done 2026-11-15)
+
+**Goal:** the UI follows the design canvas exactly; the canvas is the spec for later UI changes.
+
+**Slices (parallel, disjoint files):** A shell (header, account menu, connect and signing dialogs,
+shortcuts dialog, shared tokens and ConfirmDialog), B trade page and order flow, C Markets,
+D Portfolio with the Deposit and Enable-trading dialogs, E Alerts and Automation.
+
+**Acceptance:** `npm run check` passes; every page and dialog compared with its artboard in the
+browser at 1440 px; no horizontal scroll at 375 px; no order placed.
+
+**Known gaps (data the app does not have):** no category in the trade breadcrumb or on grid cards
+under "All"; no 24h volume or per-outcome 24h change on the trade page; no event line under alert
+and automation rows; Enable trading shows per-transaction progress only in wallet mode.
+

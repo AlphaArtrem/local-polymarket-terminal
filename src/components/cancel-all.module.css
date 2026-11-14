@@ -1,0 +1,5 @@
+.chip { font: inherit; font-size: 12px; color: #c7d0d9; background: #181d23; border: 1px solid #2a323b; border-radius: 999px; padding: 0 10px; min-height: 30px; cursor: pointer; }
+.chip:hover:not(:disabled) { border-color: #ff8f73; color: #ffc2b3; }
+.chip:focus-visible { outline: 2px solid #4fd1a5; outline-offset: 2px; }
+.chip:disabled { opacity: 0.5; cursor: default; }
+.state { font-size: 12px; color: #93a0ad; }

@@ -5,16 +5,43 @@
 .row select { width: auto; }
 .error { color: var(--c-coral-text); }
 
-.page { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s-4); }
-.title { margin: 0; font-size: 20px; font-weight: 600; }
-.desc { margin: 4px 0 0; max-width: 72ch; }
-.notifyRow { display: flex; align-items: center; gap: var(--s-2); flex-wrap: wrap; }
+/* ---- Alerts page (design canvas: Alerts) ---- */
+.layout { display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start; }
+.main { flex: 999 1 640px; min-width: 0; display: flex; flex-direction: column; gap: 16px; }
+.rail { flex: 1 1 300px; max-width: 360px; min-width: 0; display: flex; flex-direction: column; gap: 14px; }
+.title { margin: 0; font-size: 26px; font-weight: 700; }
+.desc { margin: 4px 0 0; max-width: 720px; }
+.notify { padding: 12px 16px; display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.notifyText { flex: 1 1 260px; }
 .panel { padding: 0; overflow: hidden; }
+.panelHead { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid var(--border); }
+.seg { display: flex; gap: 4px; background: #0e1216; border: 1px solid var(--border); border-radius: 9px; padding: 3px; }
+.seg button { font: 600 12px inherit; font-family: inherit; min-height: 30px; padding: 0 12px; border-radius: 7px; border: 0; cursor: pointer; color: var(--muted); background: transparent; }
+.seg button[aria-pressed="true"] { color: var(--text); background: #1e252d; }
 .scroll { overflow-x: auto; max-width: 100%; }
-.empty { padding: var(--s-5) var(--s-4); color: var(--muted); margin: 0; }
-.actions { display: flex; gap: 6px; }
-:global(.btn).sm { min-height: 26px; padding: 0 10px; font-size: 12px; }
+.table { min-width: 760px; }
+.event { font-size: 11px; }
+.empty { padding: 24px 16px; color: var(--muted); margin: 0; }
+.actions { display: inline-flex; gap: 6px; }
+.sr { position: absolute; left: -9999px; }
+.tag { font-size: 11px; font-weight: 700; border-radius: 5px; padding: 2px 6px; }
+.armed { color: #4fd1a5; background: #12251f; }
+.fired { color: #e8c27a; background: #221c10; }
+.danger { color: #ffc2b3; background: #2a1712; border-color: #4a2a20; }
+button.danger:hover { color: #ffc2b3; border-color: #ff8f73; }
+.railCard { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.railText { margin: 0; font-size: 12px; }
+.strong { color: var(--c-secondary); }
+.preview { border: 1px solid var(--border-strong); border-radius: 10px; background: #0e1216; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+.previewGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.previewField { display: flex; flex-direction: column; gap: 6px; }
+.previewBox { display: flex; align-items: center; justify-content: space-between; min-height: 36px; padding: 0 10px; background: var(--surface-2); border: 1px solid var(--border-strong); border-radius: 8px; }
+.previewActions { display: flex; gap: 8px; justify-content: flex-end; }
 
-.toasts { position: fixed; z-index: 50; right: 12px; bottom: 12px; display: grid; gap: 6px; max-width: calc(100vw - 24px); }
-.toast { display: flex; gap: 10px; align-items: center; justify-content: space-between; padding: 8px 12px; background: var(--warn-bg); border: 1px solid var(--warn-border); border-radius: var(--r-md); box-shadow: var(--shadow-pop); }
-.toast button { color: var(--muted); background: none; border: 0; cursor: pointer; }
+.toasts { position: fixed; z-index: 50; right: 20px; bottom: 20px; width: 360px; max-width: calc(100vw - 40px); display: grid; gap: 8px; }
+.toast { display: flex; gap: 12px; align-items: flex-start; padding: 14px; border-radius: 12px; background: #181d23; border: 1px solid #36414c; box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45); }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: #e8c27a; margin-top: 6px; flex: none; }
+.toastBody { flex: 1; min-width: 0; }
+.toastLabel { color: #e8c27a; }
+.toastLink { color: var(--text); font-weight: 500; }
+.toastClose { min-width: 30px; padding: 0; justify-content: center; }

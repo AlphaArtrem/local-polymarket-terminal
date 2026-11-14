@@ -29,7 +29,8 @@ export type EventCard = {
    * event the 2 listed markets with the highest Yes price, labelled by the market's short title.
    * `price` is a probability in 0..1 as a decimal string, or null when unknown.
    */
-  top: { label: string; price: string | null }[];
+  /** `assetId` is the Yes token, when known, so a card can open the ticket on that outcome. */
+  top: { label: string; price: string | null; assetId?: string | null }[];
 };
 
 /** A browse category backed by a Polymarket tag slug. */

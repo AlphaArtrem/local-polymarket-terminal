@@ -1,18 +1,23 @@
+/* StarButton styles stay until slice B stops importing this module. */
 .starWrap { position: relative; display: inline-flex; align-items: center; gap: 6px; }
 .star { font-size: 16px; line-height: 1; padding: 0 8px; color: var(--muted, inherit); }
 .starOn { color: var(--warn); }
 .msg { font-size: 12px; color: var(--warn); white-space: nowrap; }
-.card { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
-.head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
-.row { display: flex; align-items: center; gap: 4px; min-width: 0; }
-.link { flex: 1; min-width: 0; display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 6px 4px; border-radius: var(--r-sm); color: var(--text); }
-.link:hover { background: var(--surface-2); text-decoration: none; }
-.link:focus-visible { outline: none; box-shadow: var(--focus-ring); }
-.name { display: flex; flex-direction: column; min-width: 0; }
-.label, .sub { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.label { font-weight: 600; }
-.sub { font-size: 12px; }
-.figs { display: flex; flex-direction: column; align-items: flex-end; flex: none; }
-.delta { font-size: 12px; }
-.remove { flex: none; padding: 0 8px; }
+
+/* Watchlist rail card (Browse.dc.html) */
+.card { display: flex; flex-direction: column; min-width: 0; padding: 14px; border-radius: 12px; }
+.head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+.list { list-style: none; margin: 0; padding: 0; }
+.row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 8px; border-bottom: 1px solid #1A2027; }
+.row:last-child { border-bottom: 0; }
+.link { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 10px; padding: 8px 0; color: #E6EAEE; min-width: 0; }
+.link:hover { text-decoration: none; background: #181D23; }
+.link:focus-visible { outline: 2px solid #4FD1A5; outline-offset: 2px; }
+.label { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.sub { font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.price { font-weight: 600; }
+.delta { font-size: 11px; text-align: right; }
+.up { color: #4FD1A5; }
+.down { color: #FF8F73; }
+.remove { min-width: 32px; padding: 0; justify-content: center; }
+.hint { margin: 10px 0 0; font-size: 12px; }

@@ -1,23 +1,46 @@
-.session { display: flex; align-items: center; gap: 8px; min-width: 0; }
-.session :global(.chip) { max-width: 46vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Chain banner (amber, centered) */
+.banner { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px 14px; padding: 8px 20px; background: var(--warn-bg); border-bottom: 1px solid var(--warn-border); color: var(--c-amber-text); }
+.banner :global(.btn) { min-height: 30px; }
 
-.banner { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 16px; background: var(--warn-bg); border-bottom: 1px solid var(--warn-border); color: var(--text); }
-
-.dialog { background: var(--surface-1); color: var(--text); border: 1px solid var(--border-strong); border-radius: var(--r-lg); padding: 20px; max-width: 440px; width: calc(100vw - 32px); font: inherit; box-shadow: var(--shadow-pop); }
-.dialog::backdrop { background: rgba(5, 7, 9, 0.7); backdrop-filter: blur(2px); }
-.title { margin: 0 0 8px; font-size: 16px; font-weight: 600; }
-.summary { margin: 8px 0; overflow-wrap: anywhere; }
-.empty { margin: 12px 0; color: var(--muted); }
-.list { list-style: none; margin: 12px 0; padding: 0; display: grid; gap: 8px; }
-.walletBtn { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 40px; padding: 6px 12px; font: inherit; color: var(--text); text-align: left; background: var(--surface-2); border: 1px solid var(--border-strong); border-radius: var(--r-md); cursor: pointer; }
-.walletBtn:hover:not(:disabled) { background: var(--surface-3); }
+/* Dialogs (native <dialog>, .dialog-surface supplies the surface) */
+.dialog { width: 440px; max-width: calc(100vw - 32px); padding: 22px; }
+.dialog[open] { display: flex; flex-direction: column; gap: 14px; }
+.head { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.title { margin: 0; font-size: 18px; font-weight: 600; }
+.closeBtn { min-height: 32px; padding: 0 10px; }
+.lead { margin: 0; color: var(--muted); }
+.list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.walletBtn { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 52px; padding: 0 14px; font: inherit; font-weight: 600; color: var(--text); text-align: left; background: var(--c-header); border: 1px solid var(--border-strong); border-radius: 10px; cursor: pointer; }
+.walletBtn:hover:not(:disabled) { border-color: var(--c-mint); background: #111a18; }
 .walletBtn:disabled { color: var(--faint); cursor: default; }
-.noIcon { width: 24px; height: 24px; border-radius: 6px; background: var(--surface-3); flex: none; }
-.advanced { margin: 12px 0; }
-.advanced summary { cursor: pointer; color: var(--muted); }
-.advanced :global(.input) { width: 100%; max-width: none; margin-top: 6px; }
-.error { color: var(--neg); background: var(--no-bg); border: 1px solid var(--no-border); border-radius: var(--r-sm); padding: 8px 10px; margin: 8px 0; overflow-wrap: anywhere; }
-.actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
+.walletName { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.note { font-size: 12px; font-weight: 500; color: var(--muted); }
+.empty { display: flex; flex-direction: column; gap: 6px; padding: 18px; text-align: center; border: 1px dashed var(--border-strong); border-radius: 10px; }
+.empty span { color: var(--muted); }
+.advanced { border-top: 1px solid var(--border); padding-top: 12px; }
+.advanced summary { cursor: pointer; font-weight: 600; color: var(--c-secondary); }
+.fieldLabel { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; font-size: 12px; color: var(--muted); }
+.field { min-height: 40px; font-family: var(--font-num); font-size: 13px; background: var(--c-bg); border-radius: 8px; }
+.error { margin: 0; color: var(--c-coral-text-2); background: var(--no-bg); border: 1px solid var(--no-border); border-radius: 8px; padding: 8px 10px; overflow-wrap: anywhere; }
+.actions { display: flex; justify-content: flex-end; gap: 8px; }
 
+/* Signing dialog */
+.signHead { display: flex; align-items: center; gap: 12px; }
+.sub { font-size: 12px; color: var(--muted); }
+.steps { list-style: none; margin: 0; padding: 12px; display: flex; flex-direction: column; gap: 4px; background: var(--c-header); border: 1px solid var(--border); border-radius: 10px; }
+.step { display: flex; align-items: center; gap: 10px; min-height: 32px; }
+.step[aria-current="step"] { font-weight: 600; }
+.stepEnd { margin-left: auto; color: var(--muted); font-weight: 500; }
+.tick { width: 20px; height: 20px; flex: none; display: grid; place-items: center; border-radius: 50%; background: var(--c-mint); color: var(--c-bg); }
+.spin { width: 20px; height: 20px; flex: none; border-radius: 50%; border: 2px solid var(--c-mint); border-right-color: transparent; animation: spin 0.9s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.summary { margin: 0; padding: 12px; overflow-wrap: anywhere; background: var(--c-header); border: 1px solid var(--border); border-radius: 10px; }
+.fine { margin: 0; font-size: 12px; color: var(--muted); }
+
+/* Badge tile */
+.badge { display: inline-grid; place-items: center; flex: none; font-weight: 800; }
+.badgeImg { flex: none; object-fit: contain; }
+
+/* Inline connect prompt (pages that need a session) */
 .prompt { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; padding: var(--s-3) var(--s-4); background: var(--surface-1); border: 1px solid var(--border); border-radius: var(--r-md); max-width: 640px; }
 .prompt p { margin: 0; }
