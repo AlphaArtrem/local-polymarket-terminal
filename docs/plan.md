@@ -63,6 +63,7 @@ Missing key → app still runs; wallet panels show "not configured".
 | `/api/orders` | GET | open orders | yes |
 | `/api/orders` | POST | place order (validated) | yes |
 | `/api/orders/[id]` | DELETE | cancel order | yes |
+| `/api/approvals` | GET, POST | trading-approval state; POST submits the one-time approvals (user-confirmed) | yes |
 | `/api/lookup?q=` | GET | event + markets resolved from any accepted input | no |
 | `/api/book?assetId=` | GET | order book, midpoint, tick size | no |
 

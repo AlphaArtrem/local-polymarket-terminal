@@ -9,6 +9,8 @@ type Props = {
   title: string;
   rows: ConfirmRow[];
   confirmLabel: string;
+  /** Button text while `busy`; defaults to "Placing…" (order ticket). */
+  busyLabel?: string;
   busy: boolean;
   error: string | null;
   onConfirm: () => void;
@@ -16,7 +18,7 @@ type Props = {
 };
 
 /** Modal confirmation built on the native <dialog> (focus trap and Escape come for free). */
-export function ConfirmDialog({ title, rows, confirmLabel, busy, error, onConfirm, onCancel }: Props) {
+export function ConfirmDialog({ title, rows, confirmLabel, busyLabel = "Placing…", busy, error, onConfirm, onCancel }: Props) {
   const ref = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {
@@ -39,7 +41,7 @@ export function ConfirmDialog({ title, rows, confirmLabel, busy, error, onConfir
       <div className={styles.actions}>
         <button type="button" className={styles.secondary} onClick={onCancel} disabled={busy}>Back</button>
         <button type="button" className={styles.primary} onClick={onConfirm} disabled={busy}>
-          {busy ? "Placing…" : confirmLabel}
+          {busy ? busyLabel : confirmLabel}
         </button>
       </div>
     </dialog>

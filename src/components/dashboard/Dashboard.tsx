@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { activityColumns, closedPositionColumns, orderColumns, positionColumns, tradeColumns } from "./columns";
 import styles from "./dashboard.module.css";
 import { DataPanel } from "./DataPanel";
+import { EnableTrading } from "./EnableTrading";
 import { NotConfiguredHint } from "./NotConfiguredHint";
 import { Summary } from "./Summary";
 import type { ActivityDto, OrderDto, PositionDto, TradeDto } from "./types";
@@ -38,6 +39,7 @@ export function Dashboard({ configured }: { configured: boolean }) {
 
   return (
     <div>
+      <EnableTrading refreshToken={refreshToken} />
       <Summary refreshToken={refreshToken} />
       <div className={styles.toolbar}>
         <div className={styles.tabs} role="tablist">

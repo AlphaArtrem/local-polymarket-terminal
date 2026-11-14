@@ -4,8 +4,8 @@ Edit in place. This file says what exists today, not what is planned (that is [p
 
 ## What exists
 
-v1 is code-complete and waiting for the user's live test. `npm run check` passes (17 test files,
-161 tests, build, client-bundle secret scan) on Node 24, 2026-11-13.
+v1 is code-complete and waiting for the user's live test. `npm run check` passes (18 test files,
+167 tests, build, client-bundle secret scan) on Node 24, 2026-11-14.
 
 - **Phase 0 — foundation.** Next.js 16 on Node 24; env parsing (`src/lib/parse-env.ts`,
   `src/server/env.ts`); SDK clients (`src/server/polymarket.ts`); trading mode from the API
@@ -19,6 +19,9 @@ v1 is code-complete and waiting for the user's live test. `npm run check` passes
   condition id (`src/lib/search.ts`); `/api/lookup`, `/api/book`; event page
   `/market/[slug]` with outcome list (inactive negRisk placeholders hidden behind a toggle),
   live order book, `?asset=` preselect.
+- **Trading approvals.** Dashboard notice with an **Enable trading** button while the wallet
+  lacks its approvals (F14f); `GET/POST /api/approvals`, logic in `src/server/approvals.ts`,
+  one setup in flight at a time. The user's wallet showed 3 approvals missing on 2026-11-14.
 - **Phase 3 — trading.** Ticket (Buy/Sell, Yes/No, limit or market) with confirm dialog;
   `POST /api/orders`, `DELETE /api/orders/[id]`; server re-fetches market, book, access and held
   size, then `src/server/orders/validate.ts`; market orders carry `maxSpend` and a ±5¢ price
@@ -62,7 +65,6 @@ Each names what breaks silently if violated.
 
 | # | Question | Blocks |
 | - | - | - |
-| Q2 | Which wallet type is your account (F12)? Need the account wallet address from the polymarket.com profile menu, plus the signer key. | Phase 1 acceptance with real data. |
 | Q3 | Do you need gasless operations (redeem, approvals) in v1? They need a Relayer API key (F13). Planned: no. | Nothing in v1. |
 
 ## Next action

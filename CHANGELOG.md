@@ -10,4 +10,5 @@
 - Phase 1 slice B: wallet dashboard (balance, portfolio value, PnL, positions, open orders, trades, activity).
 - Phase 2 slice C: search bar (URL, slug, id, condition id), event page with live order book.
 - Market orders now pass `maxSpend` (fees can no longer exceed the per-order cap) and a 5¢ worst-price bound.
+- Dashboard shows an **Enable trading** notice when the wallet lacks its trading approvals; `GET/POST /api/approvals` checks and submits them after confirmation. README covers funding through the Polymarket bridge.
 - Event page hides inactive placeholder outcomes behind a toggle; outcome list scrolls; ticket no longer requests a book before a market is selected.

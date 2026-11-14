@@ -62,9 +62,16 @@ Open a market (`/market/<event-slug>`), pick a row, and use the ticket on the ri
 
 1. VPN off. `npm run doctor` should print your wallet type, addresses, pUSD balance and
    `closed-only: false`.
-2. `npm run dev`, open http://127.0.0.1:3737. The badge should read OK. Compare balance,
-   positions and recent trades with your polymarket.com profile.
-3. Paste `https://polymarket.com/event/next-ceo-of-nvidia`, pick a candidate, place a **5-share
+2. Fund the wallet if the balance is 0: get your bridge deposit addresses with
+   `curl -X POST https://bridge.polymarket.com/deposit -H 'Content-Type: application/json' -d '{"address":"<POLYMARKET_WALLET_ADDRESS>"}'`
+   and send a supported token (for example USDC on Polygon, Arbitrum or Base; minimums from
+   `/supported-assets`) to the `evm` address. It arrives as pUSD. Do not send to the wallet
+   address itself.
+3. `npm run dev`, open http://127.0.0.1:3737. The badge should read OK. Compare balance,
+   positions and recent trades with your polymarket.com profile. If the dashboard shows
+   "Trading is not enabled on this wallet yet", click **Enable trading** once (a gasless,
+   one-time approval; it places no order).
+4. Paste `https://polymarket.com/event/next-ceo-of-nvidia`, pick a candidate, place a **5-share
    limit BUY well below the best bid** (so it cannot fill), confirm.
-4. See it in the dashboard's Open orders tab, cancel it, see it disappear.
-5. Only then try a small market order or a Sell.
+5. See it in the dashboard's Open orders tab, cancel it, see it disappear.
+6. Only then try a small market order or a Sell.
