@@ -22,8 +22,8 @@ connect or with your own key kept in a local env file.
 - **Advanced orders**: limit orders that expire (GTD) or are post-only, and optional take-profit /
   stop-loss and TWAP rules that this app executes for you while it runs (`/automation`).
 - **Portfolio** (`/portfolio`): pUSD balance, portfolio value, open and closed positions, open
-  orders, trade history and activity, with **Export CSV** on each tab. **Deposit** is in the header on
-  every page.
+  orders, trade history and activity, with **Export CSV** on each tab. **Deposit** and **Withdraw** are in the
+  account menu (the address button, top right) on every page, and on Portfolio.
 - **Watchlist**: star an event or outcome (browse cards, market header); the Browse sidebar shows
   starred outcomes with live prices and the change since you starred them. Stored only in your
   browser.
@@ -164,6 +164,25 @@ Send a supported token to the matching address (`evm` for Polygon, Arbitrum, Bas
 other EVM chains; `svm` for Solana; `btc`; `tron`). USDC on Polygon has a $2 minimum; check
 `https://bridge.polymarket.com/supported-assets` for the current list and minimums before sending.
 It arrives as pUSD, usually within minutes.
+
+### Withdraw
+
+**Withdraw** (account menu and Portfolio) sends pUSD out of the trading wallet through Polymarket's
+bridge, the same way polymarket.com does. Pick a network (Polygon, Ethereum, Base, Arbitrum,
+Optimism or BNB Smart Chain), a token (stablecoins first), paste the recipient address and an
+amount. The dialog shows the bridge's estimate of what arrives and its fees, then a review with the
+full recipient address. On confirm the app asks the bridge for a one-off address for that exact
+destination and sends your pUSD to it; the bridge swaps it and pays the recipient, usually within
+a minute or two.
+
+- Check the recipient twice. Transfers cannot be reversed, and an exchange may not accept every
+  token on every chain.
+- The trading wallet itself and the zero address are refused. Each token has a minimum ($2, or $3
+  on Ethereum).
+- Same rules as Enable trading: gasless with a matching relayer key; EOA accounts pay POL; Safe and
+  Deposit Wallet accounts without a relayer key withdraw on polymarket.com.
+- If the result says **Submitted** rather than **Confirmed**, open the transaction link before
+  trying again, or you may withdraw twice.
 
 ### Enable trading (once per wallet)
 

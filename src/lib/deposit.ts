@@ -17,7 +17,7 @@ export const supportedAssetsSchema = z.object({
     z.object({
       chainId: z.string(),
       chainName: z.string(),
-      token: z.object({ symbol: z.string() }),
+      token: z.object({ symbol: z.string(), name: z.string().optional(), address: z.string().optional(), decimals: z.number().optional() }),
       minCheckoutUsd: z.number(),
     }),
   ),

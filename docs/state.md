@@ -118,7 +118,14 @@ rejections (403); order POST without key → 503.
 cancel, close-only detection via `fetchClosedOnlyMode`, and the ticket's enabled state. No
 order has ever been sent.
 
-**Not built:** nothing planned beyond Phase 10. Not supported: WalletConnect or mobile wallets; approvals or redeem for Safe/Deposit Wallet accounts without a relayer key (use polymarket.com); undeployed smart-wallet accounts (refused, never deployed implicitly); automation in wallet mode.
+**Phase 12 (withdraw, 2026-11-16):** built and checked in key mode against the live bridge
+without sending: `GET /api/withdraw` returned the balance, path "gasless" and six chains; a $5
+Polygon USDC quote returned ≈4.9998 USDC, $0.024 fees, ~27 s; the dialog refuses the trading wallet
+as recipient, shows the quote and the review, and fits 375 px. **Not verified:** a real withdrawal
+(`POST /bridge/withdraw` has never been called), wallet-mode signing of the transfer, the EOA POL
+path, and whether `minCheckoutUsd` is the real withdrawal minimum (F44).
+
+**Not built:** nothing planned beyond Phase 12. Not supported: WalletConnect or mobile wallets; approvals or redeem for Safe/Deposit Wallet accounts without a relayer key (use polymarket.com); undeployed smart-wallet accounts (refused, never deployed implicitly); automation in wallet mode.
 
 ## Settled decisions
 
@@ -176,5 +183,7 @@ The user runs the live checks Phase 10 could not (agents must not place or sign 
 6. Run `npm run doctor` with `POLYMARKET_WALLET_ADDRESS` blank.
 
 7. Review the rebuilt UI against the design canvas; note gaps listed under Phase 11 in plan.md.
+8. Withdraw a small amount (just above the $2 minimum) to a Polygon address you control and check
+   it arrives as USDC; note the time and the amount received against the quote.
 
 Report what failed; findings go to hazards.md and external-facts.md. No further phases planned.

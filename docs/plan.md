@@ -518,3 +518,23 @@ browser at 1440 px; no horizontal scroll at 375 px; no order placed.
 under "All"; no 24h volume or per-outcome 24h change on the trade page; no event line under alert
 and automation rows; Enable trading shows per-transaction progress only in wallet mode.
 
+
+## Phase 12 — Withdraw (built 2026-11-16, not tried live)
+
+**Goal:** move pUSD out of the trading wallet from the app, the same way polymarket.com does it.
+
+**Design:** the server asks Polymarket's bridge for a one-off withdrawal address for the chosen
+chain, token and recipient (F42), then sends pUSD to it with the SDK's `transferErc20` (F45):
+gasless with a matching relayer key, POL-paid on EOA accounts, unavailable otherwise (same matrix
+as Enable trading). Destinations are EVM chains only (Polygon, Ethereum, Base, Arbitrum, Optimism,
+BNB Smart Chain) with the tokens `/supported-assets` lists for them. A `/quote` estimate is shown
+when available. Every refusal (path, destination, recipient, minimum, balance, POL) happens before
+the bridge address is generated and before anything is sent.
+
+**Slices (parallel, disjoint files):** server (`src/server/withdraw.ts`, `/api/withdraw`,
+`/api/withdraw/quote`, the `withdraw` wallet operation) and UI (`src/components/withdraw/`, account
+menu and Portfolio buttons; a themed `Select` for network and token). Shared contract: `src/lib/withdraw.ts`.
+
+**Acceptance:** `npm run check` passes; the dialog renders in key mode with live options and a
+live quote; no withdrawal sent by an agent. The user sends the first real withdrawal (small amount,
+to an address they control on Polygon).

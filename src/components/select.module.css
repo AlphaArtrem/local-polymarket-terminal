@@ -1,0 +1,35 @@
+/* Themed select: trigger reuses the global .input look; the list matches the account menu popover. */
+
+.trigger {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  text-align: left; cursor: pointer; font: inherit; font-size: 14px;
+}
+.trigger:disabled { cursor: not-allowed; opacity: 0.5; }
+.trigger[data-open="true"] { border-color: var(--c-mint); }
+.value { color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.placeholder { color: var(--faint); }
+.chev { flex: none; color: var(--muted); transition: transform 120ms ease; }
+.trigger[data-open="true"] .chev { transform: rotate(180deg); color: var(--c-mint); }
+
+.list {
+  position: fixed; z-index: 50; margin: 0; padding: 4px; list-style: none; overflow-y: auto;
+  min-width: 180px;
+  background: var(--c-dialog); border: 1px solid var(--border-strong); border-radius: 10px;
+  box-shadow: var(--shadow-pop);
+  overscroll-behavior: contain;
+}
+.list:focus { outline: none; }
+
+.option {
+  display: flex; align-items: center; gap: 8px;
+  min-height: 34px; padding: 6px 10px; border-radius: 6px;
+  font-size: 14px; color: var(--text); cursor: pointer;
+}
+.option[data-active="true"] { background: var(--surface-3); }
+.option[aria-selected="true"] .optLabel { color: var(--c-mint-text); font-weight: 600; }
+.optLabel { flex: none; white-space: nowrap; }
+.optHint {
+  flex: 1; min-width: 0; text-align: right; color: var(--muted); font-size: 12px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.check { flex: none; color: var(--c-mint); }

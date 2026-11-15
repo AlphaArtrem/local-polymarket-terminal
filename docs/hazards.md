@@ -196,3 +196,20 @@ POL runs out, or the user rejects one of up to 17 transactions. **Guard:** POL p
 Port 3737 open in the security group, a readable `.env.local`, or a region chosen to dodge a
 restriction. **Guard:** loopback bind, SSH tunnel only, a security group that allows 22 only,
 `chmod 600`, and the README's jurisdiction warning first. See H3.
+
+## H24 — Withdrawal to the wrong address or chain (Prediction)
+
+A mistyped recipient, an exchange address on a chain the exchange does not support, or a bridge
+address reused for a different destination loses funds; transfers cannot be reversed. **Guard:**
+EVM chains only, checksummed recipient that is not zero or the trading wallet, the full address
+shown grouped and again in the confirmation, a fresh bridge address per withdrawal generated only
+after every check passes and never reused, and a check that the bridge address is not the wallet,
+signer or recipient.
+
+## H25 — Withdrawal submitted but outcome unknown (Prediction)
+
+The relayer accepts the transfer but confirmation times out (60 s), or the bridge is slow to pay
+out. The dialog shows "Submitted" with the transaction hash; a retry would send a second
+withdrawal. **Guard:** one withdrawal at a time, no automatic retry, and the result says to check
+the transaction before trying again.
+

@@ -87,7 +87,7 @@ export class BridgeSigner implements Signer {
     if (!ALLOWED_PRIMARY_TYPES[op.kind].includes(p.primaryType)) {
       throw new RequestNotAllowedError(`Typed data "${p.primaryType}" is not allowed during ${op.kind}`);
     }
-    const result = await op.request("signTypedData", p, `Sign ${p.primaryType}`);
+    const result = await op.request("signTypedData", p, op.kind === "withdraw" ? `Withdraw: sign ${p.primaryType}` : `Sign ${p.primaryType}`);
     if (!("signature" in result)) throw rejectionOrProtocol(result);
     const recovered = await recoverTypedDataAddress({
       domain: p.domain,

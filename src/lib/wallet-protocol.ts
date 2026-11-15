@@ -26,7 +26,7 @@ export type AccountInfo = {
 };
 
 /** Interactive operations the user can start; the server asks the wallet to sign only inside one. */
-export const OP_KINDS = ["connect", "order", "approvals", "redeem"] as const;
+export const OP_KINDS = ["connect", "order", "approvals", "redeem", "withdraw"] as const;
 export type OpKind = (typeof OP_KINDS)[number];
 
 /** EIP-712 primary types the wallet may be asked to sign, per operation. */
@@ -35,9 +35,10 @@ export const ALLOWED_PRIMARY_TYPES: Record<OpKind, readonly string[]> = {
   order: ["Order", "TypedDataSign"],
   approvals: ["SafeTx", "Batch"],
   redeem: ["SafeTx", "Batch"],
+  withdraw: ["SafeTx", "Batch"],
 };
-export const TX_ALLOWED: readonly OpKind[] = ["approvals", "redeem"];
-export const MESSAGE_ALLOWED: readonly OpKind[] = ["approvals", "redeem"];
+export const TX_ALLOWED: readonly OpKind[] = ["approvals", "redeem", "withdraw"];
+export const MESSAGE_ALLOWED: readonly OpKind[] = ["approvals", "redeem", "withdraw"];
 
 export type SignRequestKind = "signTypedData" | "signMessage" | "sendTransaction";
 export type PendingSign = {

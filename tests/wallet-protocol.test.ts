@@ -51,8 +51,8 @@ describe("allowlists", () => {
     expect(overlap).toEqual([]);
   });
 
-  it("allow transactions and messages only for approvals and redeem", () => {
-    expect([...TX_ALLOWED]).toEqual(["approvals", "redeem"]);
-    expect([...MESSAGE_ALLOWED]).toEqual(["approvals", "redeem"]);
+  it("allow transactions and messages only for approvals, redeem and withdraw", () => {
+    expect([...TX_ALLOWED]).toEqual(["approvals", "redeem", "withdraw"]);
+    expect([...MESSAGE_ALLOWED]).toEqual(["approvals", "redeem", "withdraw"]);
   });
 });

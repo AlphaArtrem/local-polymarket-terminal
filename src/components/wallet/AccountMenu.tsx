@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { AccountInfo } from "@/lib/wallet-protocol";
+import { DepositDialog } from "../deposit/DepositDialog";
+import { WithdrawDialog } from "../withdraw/WithdrawDialog";
 import { shortAddr } from "./addr";
 import { useWallet } from "./useWallet";
 import { WalletBadge } from "./WalletBadge";
@@ -20,11 +22,16 @@ const SOURCE_LABEL: Record<string, string> = {
   user: "Wallet you entered",
 };
 
-/** Header account button and its menu (signer, account wallet, type, source; POL balance and Disconnect in wallet mode). */
+/**
+ * Header account button and its menu: Deposit and Withdraw, then signer, account wallet, type, source;
+ * POL balance and Disconnect in wallet mode. The dialogs live outside the menu so closing the menu does
+ * not unmount them.
+ */
 export function AccountMenu({ fallbackAddress }: { fallbackAddress?: string | null }) {
   const w = useWallet();
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState<"ok" | "failed" | null>(null);
+  const [dialog, setDialog] = useState<"deposit" | "withdraw" | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
 
@@ -107,6 +114,10 @@ export function AccountMenu({ fallbackAddress }: { fallbackAddress?: string | nu
             </p>
           ) : null}
           <div className={styles.menuActions}>
+            <button type="button" className="btn btn-primary" onClick={() => { setOpen(false); setDialog("deposit"); }}>Deposit</button>
+            <button type="button" className="btn" onClick={() => { setOpen(false); setDialog("withdraw"); }}>Withdraw</button>
+          </div>
+          <div className={styles.menuActions}>
             <button type="button" className="btn" onClick={() => void copy()}>
               {copied === "ok" ? "Copied" : copied === "failed" ? "Copy failed" : "Copy address"}
             </button>
@@ -116,6 +127,8 @@ export function AccountMenu({ fallbackAddress }: { fallbackAddress?: string | nu
           </div>
         </section>
       ) : null}
+      {dialog === "deposit" ? <DepositDialog onClose={() => setDialog(null)} /> : null}
+      {dialog === "withdraw" ? <WithdrawDialog onClose={() => setDialog(null)} /> : null}
     </div>
   );
 }

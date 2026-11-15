@@ -5,6 +5,8 @@ import { activityColumns, closedPositionColumns, orderColumns, positionColumns, 
 import styles from "./dashboard.module.css";
 import { CancelAllButton } from "../CancelAllButton";
 import { DepositButton } from "../deposit/DepositButton";
+import { WITHDRAWN_EVENT } from "../withdraw/helpers";
+import { WithdrawButton } from "../withdraw/WithdrawButton";
 import { AutomationStatus } from "./AutomationStatus";
 import { DataPanel } from "./DataPanel";
 import { ExportCsvButton } from "./ExportCsvButton";
@@ -51,6 +53,12 @@ export function Dashboard({ configured, mode = "key" }: { configured: boolean; m
       document.removeEventListener("visibilitychange", onVisible);
     };
   }, [configured, refresh]);
+
+  // A withdrawal from any entry point (Portfolio button or the header account menu) refreshes the data.
+  useEffect(() => {
+    window.addEventListener(WITHDRAWN_EVENT, refresh);
+    return () => window.removeEventListener(WITHDRAWN_EVENT, refresh);
+  }, [refresh]);
 
   if (!configured) return <NotConfiguredHint />;
   // Wallet mode: no session means every account route answers 401 WALLET_NOT_CONNECTED.
@@ -118,6 +126,7 @@ function Connected({ refreshToken, refresh }: { refreshToken: number; refresh: (
         </div>
         <div className={styles.headActions}>
           <DepositButton />
+          <WithdrawButton />
         </div>
       </div>
       <EnableTrading status={approvals.data} onChanged={() => setApprovalsToken((n) => n + 1)} />
