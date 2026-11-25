@@ -10,6 +10,7 @@ import {
   type ResolveDeps,
 } from "@/lib/polymarket-core";
 import { parseEnv } from "@/lib/parse-env";
+import { sdkFetch } from "@/lib/sdk-fetch";
 
 // The SDK viem adapter is mocked so we can inspect the options keySigner passes.
 const privateKeyMock = vi.hoisted(() => vi.fn((...args: unknown[]) => ({ tag: "key-signer", args })));
@@ -33,7 +34,8 @@ function setup(over: { profile?: string | null | Error; code?: `0x${string}` | u
   return { deps, createSecureClient, fetchProfileWallet, getCode };
 }
 
-const optionsOf = (spy: ReturnType<typeof setup>["createSecureClient"]) => spy.mock.calls[0]![0] as { wallet?: string; apiKey?: unknown };
+const optionsOf = (spy: ReturnType<typeof setup>["createSecureClient"]) =>
+  spy.mock.calls[0]![0] as { wallet?: string; apiKey?: unknown; fetch?: unknown };
 
 describe("resolveAccount", () => {
   it("override wins over the profile", async () => {
@@ -49,6 +51,12 @@ describe("resolveAccount", () => {
     const r = await resolveAccount(base, t.deps);
     expect(optionsOf(t.createSecureClient).wallet).toBe(PROFILE_WALLET);
     expect(r.source).toBe("profile");
+  });
+
+  it("gives the secure client the User-Agent fetch (H26)", async () => {
+    const t = setup({ profile: PROFILE_WALLET });
+    await resolveAccount(base, t.deps);
+    expect(optionsOf(t.createSecureClient).fetch).toBe(sdkFetch);
   });
 
   it("falls back to an EOA on a 404 (null) profile", async () => {

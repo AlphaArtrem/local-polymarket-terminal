@@ -161,6 +161,7 @@ Each names what breaks silently if violated.
 9. **`createSecureClient` is always called with an explicit `wallet`, never a non-signer wallet with no on-chain code.** Violated → the SDK deploys a Deposit Wallet silently (H17). Enforced by: `tests/account-resolve.test.ts`.
 10. **The server asks a browser wallet to sign only inside an operation the user started, only for allowlisted primary types, and checks every returned signature or transaction against the session signer and the request before the SDK continues.** Violated → a page or process drives wallet prompts or signs something unseen (H19). Enforced by: `tests/bridge-signer.test.ts`.
 11. **Automation runs in key mode only.** Violated → unattended orders using a browser session (H22). Enforced by: `tests/automation-routes.test.ts`, `tests/secure-client-context.test.ts`.
+12. **Every SDK client is built with `sdkFetch`, which sends a non-default `User-Agent`.** Violated → Open and Closed positions fail with "Rate limited" on every load, because Polymarket refuses Node's default `node` (H26). Enforced by: `src/lib/polymarket-core.ts` (the only place clients are built), `tests/sdk-fetch.test.ts`, `tests/account-resolve.test.ts`.
 
 ## Open questions
 

@@ -213,3 +213,12 @@ out. The dialog shows "Submitted" with the transaction hash; a retry would send 
 withdrawal. **Guard:** one withdrawal at a time, no automatic retry, and the result says to check
 the transaction before trying again.
 
+## H26 — Portfolio "Rate limited" on every load (Lesson, 2026-11-23)
+
+Open and Closed positions failed every time with "Rate limited by Polymarket; retry shortly" while
+the other tabs worked. Polymarket's data API answers `/v2/positions` with an empty 429 when the
+User-Agent is exactly `node`, which Node's built-in fetch (and so the SDK) sends; any other value
+gets 200 (F46). The SDK maps 429 to `RateLimitError`, so it looked like real throttling. **Guard:**
+every SDK client gets `sdkFetch` (`src/lib/sdk-fetch.ts`), which adds `User-Agent:
+@polymarket/client/<version>` when none is set. Its version string is tested against `package.json`.
+The SDK marks the `fetch` option experimental, so recheck this on an SDK upgrade (H7).

@@ -15,6 +15,7 @@ import { privateKeyToAccount } from "viem/accounts";
 import { polygon } from "viem/chains";
 import { z } from "zod";
 import type { Env } from "./parse-env";
+import { sdkFetch } from "./sdk-fetch";
 import type { WalletSource } from "./wallet-protocol";
 
 /**
@@ -58,7 +59,7 @@ export type PublicClient = ReturnType<typeof createPublicClient>;
 export type SecureClient = Awaited<ReturnType<typeof createSecureClient>>;
 
 export function buildPublicClient(): PublicClient {
-  return createPublicClient();
+  return createPublicClient({ fetch: sdkFetch });
 }
 
 export type ResolvedAccount = {
@@ -91,7 +92,7 @@ function defaultDeps(rpcUrl: string): ResolveDeps {
     async fetchProfileWallet(address) {
       try {
         // The SDK maps a 404 to null; every other failure throws (E8, E10).
-        const profile = await createPublicClient().fetchPublicProfile({ address });
+        const profile = await buildPublicClient().fetchPublicProfile({ address });
         return profile?.wallet ?? null;
       } catch (err) {
         throw new AccountLookupError("Could not look up the Polymarket profile for this signer", { cause: err });
@@ -152,6 +153,8 @@ export async function resolveAccount(
   const client = await d.createSecureClient({
     wallet,
     signer: args.signer,
+    // Sets a User-Agent; Node's default one is refused on /v2/positions (H26).
+    fetch: sdkFetch,
     // Production config with only the Polygon RPC replaced (see POLYGON_RPC_URL in parse-env.ts).
     environment: forkEnvironmentConfig({ name: "production", rpc: args.polygonRpcUrl }),
     // Gasless wallet operations are refused by the SDK without this.
